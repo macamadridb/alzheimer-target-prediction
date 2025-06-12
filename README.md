@@ -12,6 +12,8 @@ Este repositorio contiene el código, datos y resultados asociados a la memoria 
 - `notebooks/`: notebooks usados para exploración y análisis.
 - `src/`: scripts de preprocesamiento, modelamiento y entrenamiento.
 - `results/`: gráficos, métricas y salidas del modelo.
+  - `figures/`
+  - `metrics/`
 - `thesis/`: documento final de la memoria en formato PDF o LaTeX.
 
 ## ⚙️ Requisitos
