@@ -1,0 +1,12 @@
+pandas>=1.5.0
+numpy>=1.23.0
+matplotlib>=3.6.0
+seaborn>=0.12.0
+scikit-learn>=1.2.0
+wordcloud>=1.8.2.2
+imbalanced-learn>=0.10.0
+torch>=2.0.0
+torch-geometric>=2.4.0
+networkx>=2.8.0
+psutil>=5.9.0
+ipython>=8.10.0

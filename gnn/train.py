@@ -16,9 +16,9 @@ def train(model, data, epochs=200, lr=0.01, weight_decay=5e-4):
         out = model(data)  # embeddings
 
         # Unsupervised loss de ejemplo (reconstrucción o compactación)
-        #loss = torch.mean(out**2)  # Placeholder: puedes cambiarlo por DGI, contrastive, etc.
+        loss = torch.mean(out**2)  # Placeholder: puedes cambiarlo por DGI, contrastive, etc.
         
-        loss = torch.mean(out[data.train_mask] ** 2)  # Usar máscara de entrenamiento
+        #loss = torch.mean(out[data.train_mask] ** 2)  # Usar máscara de entrenamiento
         
         loss.backward()
         optimizer.step()
