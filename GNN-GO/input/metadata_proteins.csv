@@ -1,4 +1,4 @@
-Node_id,Target_type,Target_group,Target_group_score_normalized,DEG
+proteina,Target_type,Target_group,Target_group_score_normalized,DEG
 CPX-289,PROTEIN COMPLEX,"T1, T2, T3, T4",1.0,none
 CPX-659,PROTEIN COMPLEX,"T1, T2, T3, T4",1.0,none
 CPX-661,PROTEIN COMPLEX,"T1, T2, T3, T4",1.0,none
