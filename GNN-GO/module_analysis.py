@@ -11,13 +11,7 @@ from statsmodels.stats.multitest import multipletests
 from collections import defaultdict
 
 def detect_modules(embeddings, protein_ids, n_clusters=None, clustering_method='kmeans', random_state=42):
-    """
-    Detecta módulos funcionales usando clustering.
-    embeddings: numpy array de los embeddings de los nodos.
-    protein_ids: lista de los IDs de las proteínas correspondientes a los embeddings.
-    n_clusters: número de clusters para K-Means (opcional).
-    clustering_method: 'kmeans' o 'dbscan'.
-    """
+    
     
     labels = None
     if clustering_method == 'kmeans':
@@ -61,9 +55,7 @@ def detect_modules(embeddings, protein_ids, n_clusters=None, clustering_method='
     return labels, protein_module_map
 
 def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)"):
-    """
-    Visualiza los embeddings de nodos en 2D usando t-SNE.
-    """
+    
     print("Visualizando embeddings con t-SNE...")
     valid_indices = labels != -1
     embeddings_filtered = embeddings[valid_indices]
@@ -74,6 +66,7 @@ def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)"
         return
 
     tsne = TSNE(n_components=2, random_state=42, perplexity=min(30.0, embeddings_filtered.shape[0]-1), n_iter=1000) 
+    # esta dando error el n_iter
     embeddings_2d = tsne.fit_transform(embeddings_filtered)
 
     plt.figure(figsize=(10, 8))
@@ -86,9 +79,7 @@ def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)"
     plt.show()
 
 def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_metadata_df, all_proteins_list):
-    """
-    Analiza cada módulo para identificar el GO representativo, proteínas DEG y distribución de target_group.
-    """
+   
     unique_modules = np.unique(list(protein_module_map.values()))
     results = []
 
@@ -98,7 +89,7 @@ def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_met
     
     go_term_details = go_metadata_df.set_index('GO_term')
     protein_deg_map = protein_metadata_df.set_index('proteina')['DEG'].to_dict()
-    protein_target_group_map = protein_metadata_df.set_index('proteina')['target_group'].to_dict()
+    protein_target_group_map = protein_metadata_df.set_index('proteina')['Target_group'].to_dict()
 
     all_go_terms_in_network = [term for prot_id in all_proteins_list if prot_id in protein_go_map for term in protein_go_map[prot_id]]
     global_go_counts = pd.Series(all_go_terms_in_network).value_counts().to_dict()
@@ -192,10 +183,7 @@ def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_met
     return results
 
 def assign_most_representative_go(protein_module_map, go_terms_df, go_metadata_df):
-    """
-    Asigna el término GO más representativo (el más frecuente para cada proteína)
-    en el formato "GO_ID (GO_Name)".
-    """
+    
     protein_go_assignment = {}
     
     protein_go_frequency = defaultdict(lambda: defaultdict(int))

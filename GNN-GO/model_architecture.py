@@ -3,6 +3,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GATConv
+import torch 
 
 class GNNEncoder(nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_heads=1, add_self_loops=True):
@@ -20,6 +21,7 @@ class GNNEncoder(nn.Module):
         x = self.dropout(x)
 
         x = self.conv2(x, edge_index, edge_attr=edge_attr)
+       # x = F.elu(x) # Aplicar activación ELU opcional
         return x
 
 class LinkPredictor(nn.Module):
@@ -34,3 +36,5 @@ class LinkPredictor(nn.Module):
         x = F.relu(x)
         x = self.lin2(x)
         return x
+    
+    # Se usa para regresión, ocupar función de perdida nn.MSELoss

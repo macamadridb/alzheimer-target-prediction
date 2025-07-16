@@ -1,6 +1,5 @@
 # este codifo contiene las funciones relacionadas con la carga, mapeo y preprocesameinto de mis archivos en el formato requerido por PyTorch Geometric.
 import pandas as pd
-import numpy as np
 import torch
 from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, StandardScaler
 from collections import defaultdict

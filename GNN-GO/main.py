@@ -12,11 +12,11 @@ from model_architecture import *
 from training_evaluation import *
 from module_analysis import *
 from torch_geometric.data import Data
-from torch_geometric.utils import train_test_split_edges
+from torch_geometric.transforms import RandomLinkSplit
 
 # --- Configuración de Rutas de Datos ---
 BASE_INPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "GNN-GO", "input") 
-
+BASE_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "GNN-GO", "output") 
 # Crear paths individuales
 edge_path = os.path.join(BASE_INPUT_DIR, "Edge.csv")
 go_path = os.path.join(BASE_INPUT_DIR, "Go.csv")
@@ -114,19 +114,39 @@ def main():
     print("\n--- Resumen del Grafo Cargado ---")
     print(f"  Total de Nodos (Proteínas únicas): {x.shape[0]}")
     print(f"  Nodos con GO terms cubiertos por la ontología '{GO_ONTOLOGY_FILTER}': {num_nodes_covered_by_go}")
-    print(f"  Número de GO terms únicos utilizados (tras filtro): {num_go_terms_used}")
+    print(f"  Número de GO terms únicos utilizados (tras filtro '{GO_ONTOLOGY_FILTER}'): {num_go_terms_used}")
     print(f"  Total de Aristas originales (interacciones únicas): {num_edges_original}")
     print(f"  Total de Aristas en el grafo (bidireccional): {num_edges_bidirectional}")
     print(f"  Dimensión de atributos de arista (`interaction_score`): {edge_attr.shape[1]}")
+    print(f"  Dimensión de características de nodo: {x.shape[1]}")
 
     # Crear objeto Data de PyG
     print("Creando objeto Data de PyTorch Geometric...")
     data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
 
-    # HASTA AQUÍ FUNCIONA SÚPER BIEN
+    # HASTA AQUÍ ES SOLO DE DATA_PREPROCESSING.PY
+    
     # DE AQUI en adelante no xdd
     print("\nDividiendo enlaces para entrenamiento/validación/prueba (predicción de enlaces)...")
-    data = train_test_split_edges(data, val_ratio=0.1, test_ratio=0.1, is_undirected=True) 
+    transform = RandomLinkSplit(
+        num_val=0.1,
+        num_test=0.1,
+        is_undirected=True,
+        add_negative_train_samples=True,
+        split_labels=True
+    )
+    
+    train_data, val_data, test_data = transform(data)
+
+    data.train_pos_edge_index = train_data.pos_edge_label_index
+    data.train_neg_edge_index = train_data.neg_edge_label_index
+    data.val_pos_edge_index   = val_data.pos_edge_label_index
+    data.val_neg_edge_index   = val_data.neg_edge_label_index
+    data.test_pos_edge_index  = test_data.pos_edge_label_index
+    data.test_neg_edge_index  = test_data.neg_edge_label_index
+    data.x = train_data.x  # se mantiene igual
+    data.edge_index = train_data.edge_index
+    data.edge_attr = train_data.edge_attr
     
     print(f"  Enlaces Positivos de Entrenamiento: {data.train_pos_edge_index.shape[1]}")
     print(f"  Enlaces Positivos de Validación: {data.val_pos_edge_index.shape[1]}")
@@ -147,18 +167,57 @@ def main():
 
     data = data.to(device)
 
+    results = []
     print(f"Comenzando el entrenamiento por {EPOCHS} épocas...")
     for epoch in range(1, EPOCHS + 1):
         loss = train(model, predictor, data, optimizer, criterion)
-        val_auc, test_auc = test(model, predictor, data)
+        val_auc, test_auc, val_acc, test_acc, val_precision, test_precision, val_recall, test_recall, val_f1, test_f1 = test(model, predictor, data)
+
+        # Guardar métricas en lista
+        results.append({
+            'epoch': epoch,
+            'loss': loss,
+            'val_auc': val_auc,
+            'test_auc': test_auc,
+            'val_acc': val_acc,
+            'test_acc': test_acc,
+            'val_precision': val_precision,
+            'test_precision': test_precision,
+            'val_recall': val_recall,
+            'test_recall': test_recall,
+            'val_f1': val_f1,
+            'test_f1': test_f1
+        })
+
         if epoch % 10 == 0 or epoch == 1 or epoch == EPOCHS:
-            print(f'  Epoch: {epoch:03d}, Loss: {loss:.4f}, Val AUC: {val_auc:.4f}, Test AUC: {test_auc:.4f}')
+            print(f'  Epoch: {epoch:03d} | Loss: {loss:.4f} | '
+                  f'Val AUC: {val_auc:.4f} | Test AUC: {test_auc:.4f} | '
+                  f'Val Acc: {val_acc:.4f} | Test Acc: {test_acc:.4f} | '
+                  f'Val Precision: {val_precision:.4f} | Test Precision: {test_precision:.4f} | '
+                  f'Val Recall: {val_recall:.4f} | Test Recall: {test_recall:.4f} | '
+                  f'Val F1: {val_f1:.4f} | Test F1: {test_f1:.4f}')
+    # Guardar métricas en archivo CSV en la carpeta de output
+    output_path = os.path.join(BASE_OUTPUT_DIR, "resultados_metricas_entrenamiento.csv")
+    results_df = pd.DataFrame(results)
+    results_df.to_csv(output_path, index=False)
+    print(f"\nMétricas guardadas en: {output_path}")
+
 
     print("\nEntrenamiento del modelo GNN completado. Generando embeddings finales...")
     model.eval()
     with torch.no_grad():
         final_embeddings = model(data.x, data.edge_index, data.edge_attr).cpu().numpy()
     print(f"Embeddings finales generados. Dimensión: {final_embeddings.shape}")
+
+    # Guardar embeddings finales en un archivo CSV
+    protein_ids = list(protein_to_idx.keys())  # usa tu diccionario de mapeo de proteínas
+    emb_df = pd.DataFrame(final_embeddings, index=protein_ids)
+
+    # Guardar en archivo .csv
+    emb_output_path = os.path.join(BASE_OUTPUT_DIR, "embeddings.csv")
+    emb_df.to_csv(emb_output_path)
+
+    print(f"[INFO] Embeddings guardados en: {emb_output_path}")
 
     # --- 3. Detección de Módulos Funcionales ---
     print(f"\n--- Fase 3: Detección de Módulos Funcionales ---")
