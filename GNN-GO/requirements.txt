@@ -1,0 +1,23 @@
+# Core
+numpy>=1.21
+pandas>=1.3
+scipy>=1.7
+matplotlib>=3.4
+seaborn>=0.11
+scikit-learn>=1.0
+
+# Deep Learning
+torch>=2.0
+
+# PyTorch Geometric
+torch-geometric>=2.3
+torch-sparse>=0.6.17
+torch-scatter>=2.1.1
+torch-cluster>=1.6.1
+torch-spline-conv>=1.2.2  # Necesario si usas SplineConv (opcional)
+
+# Estadística múltiple
+statsmodels>=0.13
+
+# Otros
+psutil>=5.9
