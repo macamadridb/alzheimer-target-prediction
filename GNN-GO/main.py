@@ -238,10 +238,16 @@ def main():
     )
     
     if labels is not None and len(np.unique(labels[labels != -1])) > 1:
-        print("Visualizando embeddings de nodos...")
-        visualize_embeddings(final_embeddings, labels, title=f"Embeddings de Nodos por Módulo (GO: {GO_ONTOLOGY_FILTER})")
+        print("Visualizando y guardando embeddings de nodos...")
+        emb_output_path = os.path.join(BASE_OUTPUT_DIR, "embeddings_nodos.png")
+        visualize_embeddings(final_embeddings, labels, 
+                            title=f"Embeddings de Nodos por Módulo (GO: {GO_ONTOLOGY_FILTER})",
+                            save_path=emb_output_path)
     else:
         print("No hay suficientes módulos válidos para visualizar.")
+
+
+    
  
     # --- 4. Análisis y Evaluación de Módulos ---
     print("\n--- Fase 4: Análisis y Evaluación de Módulos ---")

@@ -54,8 +54,7 @@ def detect_modules(embeddings, protein_ids, n_clusters=None, clustering_method='
     
     return labels, protein_module_map
 
-def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)"):
-    
+def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)", save_path=None):
     valid_indices = labels != -1
     embeddings_filtered = embeddings[valid_indices]
     labels_filtered = labels[valid_indices]
@@ -90,7 +89,13 @@ def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)"
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.legend(title="Módulos", bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
-    plt.show()
+    if save_path:
+        plt.savefig(save_path, dpi=300)
+        print(f"[INFO] Gráfico de embeddings guardado en: {save_path}")
+    else:
+        plt.show()
+
+    plt.close()
 
 def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_metadata_df, all_proteins_list):
    
