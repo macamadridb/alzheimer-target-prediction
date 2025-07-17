@@ -64,17 +64,32 @@ def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)"
         print("No hay puntos válidos para visualizar después de filtrar ruido.")
         return
 
-    tsne = TSNE(n_components=2, random_state=42, perplexity=min(30.0, embeddings_filtered.shape[0]-1), max_iter=1000) 
+    tsne = TSNE(n_components=2,
+                random_state=42,
+                perplexity=min(30.0, embeddings_filtered.shape[0]-1),
+                max_iter=1000) 
     # esta dando error el n_iter
     embeddings_2d = tsne.fit_transform(embeddings_filtered)
 
     plt.figure(figsize=(10, 8))
-    scatter = plt.scatter(embeddings_2d[:, 0], embeddings_2d[:, 1], c=labels_filtered, cmap='viridis', s=10, alpha=0.7)
-    plt.colorbar(scatter, label='Módulo')
+    unique_labels = np.unique(labels_filtered)
+
+    for label in unique_labels:
+        idx = labels_filtered == label
+        plt.scatter(
+            embeddings_2d[idx, 0],
+            embeddings_2d[idx, 1],
+            s=12,
+            alpha=0.75,
+            label=f"Módulo {label}"
+        )
+
     plt.title(title)
     plt.xlabel("t-SNE Component 1")
     plt.ylabel("t-SNE Component 2")
     plt.grid(True, linestyle='--', alpha=0.6)
+    plt.legend(title="Módulos", bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
     plt.show()
 
 def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_metadata_df, all_proteins_list):
@@ -140,7 +155,7 @@ def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_met
                     min_p_val_corrected = p_values_corrected[i]
                     best_go_term = go_term
             
-            go_term_name = go_term_details.loc[best_go_term, 'Term_Name'] if best_go_term in go_term_details.index else 'N/A'
+            go_term_name = go_term_details.loc[best_go_term, 'Term_Name_Clean'] if best_go_term in go_term_details.index else 'N/A'
             representative_go = f"{best_go_term} ({go_term_name})"
             representative_go_p_value = min_p_val_corrected
         else:

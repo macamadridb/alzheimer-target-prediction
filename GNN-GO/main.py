@@ -285,7 +285,7 @@ def main():
 
 # hasta aqui revisado
     print("\n--- Lista de Nodos con Términos GO Más Representativos ---")
-    protein_go_df = assign_module_go_to_proteins(results)
+    protein_go_df = assign_module_go_to_proteins(analysis_results)
     
     # Imprimir los primeros 20 y luego indicar que hay más
     print(protein_go_df.head(20).to_string(index=False))
