@@ -31,8 +31,8 @@ def detect_modules(embeddings, protein_ids, n_clusters=None, clustering_method='
 
     protein_module_map = {protein_ids[i]: labels[i] for i in range(len(protein_ids))}
     
-    unique_labels = np.unique(labels)
-    valid_labels = unique_labels[unique_labels != -1]
+    unique_labels = np.unique(labels) # Obtener etiquetas únicas
+    valid_labels = unique_labels[unique_labels != -1] # Excluir el ruido (-1)
     
     if len(valid_labels) > 1:
         valid_indices = labels != -1
@@ -56,7 +56,6 @@ def detect_modules(embeddings, protein_ids, n_clusters=None, clustering_method='
 
 def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)"):
     
-    print("Visualizando embeddings con t-SNE...")
     valid_indices = labels != -1
     embeddings_filtered = embeddings[valid_indices]
     labels_filtered = labels[valid_indices]
@@ -65,7 +64,7 @@ def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)"
         print("No hay puntos válidos para visualizar después de filtrar ruido.")
         return
 
-    tsne = TSNE(n_components=2, random_state=42, perplexity=min(30.0, embeddings_filtered.shape[0]-1), n_iter=1000) 
+    tsne = TSNE(n_components=2, random_state=42, perplexity=min(30.0, embeddings_filtered.shape[0]-1), max_iter=1000) 
     # esta dando error el n_iter
     embeddings_2d = tsne.fit_transform(embeddings_filtered)
 
@@ -94,24 +93,26 @@ def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_met
     all_go_terms_in_network = [term for prot_id in all_proteins_list if prot_id in protein_go_map for term in protein_go_map[prot_id]]
     global_go_counts = pd.Series(all_go_terms_in_network).value_counts().to_dict()
     
-    proteins_in_go_universe = len(set(p for p in all_proteins_list if protein_go_map[p])) # Correct universe for hypergeom test
+    proteins_in_go_universe = len(set(p for p in all_proteins_list if protein_go_map[p])) # Total de proteínas con al menos un GO term asignado
 
     for module_id in sorted(unique_modules):
         if module_id == -1: 
             continue
 
+        # Proteinas del modulo, se filtran las prpoteinas que pertenecen al modulo actual
         module_proteins = [p for p, m in protein_module_map.items() if m == module_id]
         
         if not module_proteins:
             continue
 
-        # 1. Enriquecimiento GO para el módulo
+        # 1. Enriquecimiento GO
         module_go_terms = [term for p in module_proteins for term in protein_go_map[p]]
         module_go_counts = pd.Series(module_go_terms).value_counts().to_dict()
         
         enriched_go_terms_list = []
         p_values = []
-        
+
+        # Test hipergeométrico para cada GO term en el módulo
         for go_term, module_count in module_go_counts.items():
             k = module_count 
             M = global_go_counts.get(go_term, 0)
@@ -122,12 +123,14 @@ def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_met
                 p_val = 1.0
             else:
                 p_val = stats.hypergeom.sf(k-1, N, M, n)
+                # correcion por FDR (Benjamini-Hochberg)
             
             p_values.append(p_val)
             enriched_go_terms_list.append(go_term)
             
         if p_values:
             rejected, p_values_corrected, _, _ = multipletests(p_values, alpha=0.05, method='fdr_bh')
+            # Seleccionar el GO term con el menor p-valor corregido, este es el más representativo
             
             best_go_term = None
             min_p_val_corrected = float('inf')
@@ -137,7 +140,7 @@ def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_met
                     min_p_val_corrected = p_values_corrected[i]
                     best_go_term = go_term
             
-            go_term_name = go_term_details.loc[best_go_term, 'term_name'] if best_go_term in go_term_details.index else 'N/A'
+            go_term_name = go_term_details.loc[best_go_term, 'Term_Name'] if best_go_term in go_term_details.index else 'N/A'
             representative_go = f"{best_go_term} ({go_term_name})"
             representative_go_p_value = min_p_val_corrected
         else:
@@ -180,26 +183,26 @@ def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_met
             'target_group_distribution': target_group_distribution,
             'module_proteins': module_proteins
         })
+
     return results
 
-def assign_most_representative_go(protein_module_map, go_terms_df, go_metadata_df):
-    
-    protein_go_assignment = {}
-    
-    protein_go_frequency = defaultdict(lambda: defaultdict(int))
-    for _, row in go_terms_df.iterrows():
-        protein_go_frequency[row['proteina']][row['GO_term']] += 1
-    
-    go_term_details = go_metadata_df.set_index('GO_term')
+def assign_module_go_to_proteins(results):
+    # a partir de los resultados de analyze_modules, asignar el GO representativo a cada proteína
 
-    for protein_id in protein_module_map.keys(): # Iterar sobre todas las proteínas que se mapearon
-        go_counts = protein_go_frequency.get(protein_id, {})
-        
-        if go_counts:
-            most_frequent_go = max(go_counts, key=go_counts.get)
-            term_name = go_term_details.loc[most_frequent_go, 'term_name'] if most_frequent_go in go_term_details.index else 'N/A'
-            protein_go_assignment[protein_id] = f"{most_frequent_go} ({term_name})"
+    rows = []
+    for module in results:
+        rep_go = module['representative_go']
+        if '(' in rep_go and ')' in rep_go:
+            go_term = rep_go.split('(')[0].strip()
+            term_name = rep_go.split('(')[1].replace(')', '').strip()
         else:
-            protein_go_assignment[protein_id] = "No GO terms asignados"
-            
-    return protein_go_assignment
+            go_term = rep_go
+            term_name = ""
+
+        for prot in module['module_proteins']:
+            rows.append({
+                'proteina': prot,
+                'GO_term': go_term,
+                'Term_Name_Clean': term_name
+            })
+    return pd.DataFrame(rows)

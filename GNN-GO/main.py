@@ -125,12 +125,11 @@ def main():
     data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
 
     # HASTA AQUÍ ES SOLO DE DATA_PREPROCESSING.PY
-    
-    # DE AQUI en adelante no xdd
+   
     print("\nDividiendo enlaces para entrenamiento/validación/prueba (predicción de enlaces)...")
     transform = RandomLinkSplit(
-        num_val=0.1,
-        num_test=0.1,
+        num_val=0.1, #10% de los datos para validación
+        num_test=0.1, #10% de los datos para prueba
         is_undirected=True,
         add_negative_train_samples=True,
         split_labels=True
@@ -170,32 +169,41 @@ def main():
     results = []
     print(f"Comenzando el entrenamiento por {EPOCHS} épocas...")
     for epoch in range(1, EPOCHS + 1):
-        loss = train(model, predictor, data, optimizer, criterion)
-        val_auc, test_auc, val_acc, test_acc, val_precision, test_precision, val_recall, test_recall, val_f1, test_f1 = test(model, predictor, data)
+        train_loss, train_auc, train_acc, train_precision, train_recall, train_f1 = train(model, predictor, data, optimizer, criterion)
+        val_loss, test_loss, val_auc, test_auc, val_acc, test_acc, val_precision, test_precision, val_recall, test_recall, val_f1, test_f1 = test(model, predictor, data)
 
         # Guardar métricas en lista
         results.append({
-            'epoch': epoch,
-            'loss': loss,
-            'val_auc': val_auc,
-            'test_auc': test_auc,
-            'val_acc': val_acc,
-            'test_acc': test_acc,
-            'val_precision': val_precision,
-            'test_precision': test_precision,
-            'val_recall': val_recall,
-            'test_recall': test_recall,
-            'val_f1': val_f1,
-            'test_f1': test_f1
-        })
-
+        'epoch': epoch,
+        'train_loss': train_loss,
+        'val_loss': val_loss.item(),
+        'test_loss': test_loss.item(),
+        'train_auc': train_auc,
+        'val_auc': val_auc,
+        'test_auc': test_auc,
+        'train_acc': train_acc,
+        'val_acc': val_acc,
+        'test_acc': test_acc,
+        'train_precision': train_precision,
+        'val_precision': val_precision,
+        'test_precision': test_precision,
+        'train_recall': train_recall,
+        'val_recall': val_recall,
+        'test_recall': test_recall,
+        'train_f1': train_f1,
+        'val_f1': val_f1,
+        'test_f1': test_f1
+    })
+        
+        # Mostrar métricas cada 10 épocas (o al inicio y al final)
         if epoch % 10 == 0 or epoch == 1 or epoch == EPOCHS:
-            print(f'  Epoch: {epoch:03d} | Loss: {loss:.4f} | '
-                  f'Val AUC: {val_auc:.4f} | Test AUC: {test_auc:.4f} | '
-                  f'Val Acc: {val_acc:.4f} | Test Acc: {test_acc:.4f} | '
-                  f'Val Precision: {val_precision:.4f} | Test Precision: {test_precision:.4f} | '
-                  f'Val Recall: {val_recall:.4f} | Test Recall: {test_recall:.4f} | '
-                  f'Val F1: {val_f1:.4f} | Test F1: {test_f1:.4f}')
+            print(f'  Epoch: {epoch:03d} | '
+                f'Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Test Loss: {test_loss:.4f} | '
+                f'Train AUC: {train_auc:.4f} | Val AUC: {val_auc:.4f} | Test AUC: {test_auc:.4f} | '
+                f'Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f} | Test Acc: {test_acc:.4f} | '
+                f'Train Prec: {train_precision:.4f} | Val Prec: {val_precision:.4f} | Test Prec: {test_precision:.4f} | '
+                f'Train Recall: {train_recall:.4f} | Val Recall: {val_recall:.4f} | Test Recall: {test_recall:.4f} | '
+                f'Train F1: {train_f1:.4f} | Val F1: {val_f1:.4f} | Test F1: {test_f1:.4f}')
     # Guardar métricas en archivo CSV en la carpeta de output
     output_path = os.path.join(BASE_OUTPUT_DIR, "resultados_metricas_entrenamiento.csv")
     results_df = pd.DataFrame(results)
@@ -225,16 +233,16 @@ def main():
     
     ordered_protein_ids = list(protein_to_idx.keys())
     
-    module_labels, protein_module_map = detect_modules(
+    labels, protein_module_map = detect_modules(
         final_embeddings, ordered_protein_ids, n_clusters=N_CLUSTERS, clustering_method=CLUSTERING_METHOD
     )
     
-    if module_labels is not None and len(np.unique(module_labels[module_labels != -1])) > 1:
+    if labels is not None and len(np.unique(labels[labels != -1])) > 1:
         print("Visualizando embeddings de nodos...")
-        visualize_embeddings(final_embeddings, module_labels, title=f"Embeddings de Nodos por Módulo (GO: {GO_ONTOLOGY_FILTER})")
+        visualize_embeddings(final_embeddings, labels, title=f"Embeddings de Nodos por Módulo (GO: {GO_ONTOLOGY_FILTER})")
     else:
         print("No hay suficientes módulos válidos para visualizar.")
-
+ 
     # --- 4. Análisis y Evaluación de Módulos ---
     print("\n--- Fase 4: Análisis y Evaluación de Módulos ---")
     print("Realizando análisis de enriquecimiento GO y distribución de metadatos por módulo...")
@@ -243,6 +251,7 @@ def main():
     )
 
     print("\n--- Resultados del Análisis de Módulos Detectados ---")
+    module_summary = []
     for res in analysis_results:
         print(f"\n**Módulo {res['module_id']}**")
         print(f"  Go Representativo: {res['representative_go']}")
@@ -257,36 +266,37 @@ def main():
         print(f"  Distribución de Target_Group: {target_group_str}")
         print(f"  Total proteínas en módulo: {len(res['module_proteins'])}")
 
+        # agregar a resumen
+        module_summary.append({
+            'module_id': res['module_id'],
+            'representative_go': res['representative_go'],
+            'representative_go_p_value': res['representative_go_p_value'],
+            'deg_distribution': str(res['deg_distribution']),
+            'target_group_distribution': str(res['target_group_distribution']),
+            'num_proteins': len(res['module_proteins']),
+            'proteins': ", ".join(res['module_proteins'])  # Opcional
+            })
+    # Guardar como CSV
+    output_path = os.path.join(BASE_OUTPUT_DIR, "resultados_modulos.csv")
+    results_df = pd.DataFrame(module_summary)
+    results_df.to_csv(output_path, index=False)
+
+    print(f"\nResumen de módulos guardado en: {output_path}")
+
+# hasta aqui revisado
     print("\n--- Lista de Nodos con Términos GO Más Representativos ---")
-    protein_go_assignments = assign_most_representative_go(protein_module_map, go_terms_df, go_metadata_df)
+    protein_go_df = assign_module_go_to_proteins(results)
     
     # Imprimir los primeros 20 y luego indicar que hay más
-    protein_go_output_lines = []
-    for protein_id in sorted(protein_go_assignments.keys()): # Ordenar para salida consistente
-        go_info = protein_go_assignments[protein_id]
-        protein_go_output_lines.append(f"{protein_id}\t{go_info}")
+    print(protein_go_df.head(20).to_string(index=False))
+    if len(protein_go_df) > 20:
+        print(f"... y {len(protein_go_df) - 20} más.")
 
-    for i, line in enumerate(protein_go_output_lines):
-        if i < 20: # Imprime solo los primeros 20 para la consola
-            print(line)
-        else:
-            break
-    if len(protein_go_output_lines) > 20:
-        print(f"... y {len(protein_go_output_lines) - 20} más.")
+    # Guardar la tabla en archivo CSV
+    output_path = os.path.join(BASE_OUTPUT_DIR, "proteinas_con_go_representativo.csv")
+    protein_go_df.to_csv(output_path, index=False)
+    print(f"\nLista de nodos con GOs representativos guardada en: {output_path}")
 
-    # Guardar las asignaciones en un archivo csv
-    output_df = pd.DataFrame([line.split('\t', 1) for line in protein_go_output_lines], 
-                             columns=['Proteina', 'GO_Asignado'])
-    
-    output_df.to_csv('protein_GO_assignments_formatted.csv', sep='\t', index=False)
-    print(f"\nLista de nodos con GOs guardada en 'protein_GO_assignments_formatted.csv'")
-
-
-    print("\n--- Outputs Adicionales Generados ---")
-    embeddings_df = pd.DataFrame(final_embeddings, index=ordered_protein_ids)
-    embeddings_df.index.name = 'proteina'
-    embeddings_df.to_csv('protein_embeddings.csv', sep='\t', header=True)
-    print(f"Embeddings de proteínas guardados en 'protein_embeddings.csv'")
 
     module_assignments_df = pd.DataFrame(list(protein_module_map.items()), columns=['proteina', 'modulo'])
     module_assignments_df.to_csv('protein_module_assignments.csv', sep='\t', index=False)
