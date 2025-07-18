@@ -70,7 +70,7 @@ def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)"
     # esta dando error el n_iter
     embeddings_2d = tsne.fit_transform(embeddings_filtered)
 
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(20, 20))
     unique_labels = np.unique(labels_filtered)
 
     for label in unique_labels:

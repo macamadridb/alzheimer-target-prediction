@@ -9,8 +9,15 @@ from training_evaluation import *
 from module_analysis import *
 
 BASE_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "GNN-GO", "output")
-EMBEDDINGS_PATH = os.path.join(BASE_OUTPUT_DIR, "protein_embeddings.csv")
+BASE_INPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "GNN-GO", "input") 
+EMBEDDINGS_PATH = os.path.join(BASE_OUTPUT_DIR, "embeddings.csv")
 GO_ONTOLOGY_FILTER = "all"  # ajustar si aplica filtro
+
+# Crear paths individuales
+edge_path = os.path.join(BASE_INPUT_DIR, "Edge.csv")
+go_path = os.path.join(BASE_INPUT_DIR, "Go.csv")
+protein_metadata_path = os.path.join(BASE_INPUT_DIR, "metadata_proteins.csv")
+go_metadata_path = os.path.join(BASE_INPUT_DIR, "metadata_GO.csv")
 
 N_CLUSTERS = 100 # Número de módulos a detectar 
 CLUSTERING_METHOD = 'kmeans' 
@@ -19,15 +26,13 @@ def main():
 
     # --- 1. Cargar Embeddings ---
     print(f"🔹 Cargando embeddings desde: {EMBEDDINGS_PATH}")
-    embedding_df = pd.read_csv(EMBEDDINGS_PATH, sep='\\t', index_col=0)
+    embedding_df = pd.read_csv(EMBEDDINGS_PATH, sep=',', index_col=0)
     final_embeddings = embedding_df.values
     ordered_protein_ids = embedding_df.index.tolist()
 
     # --- 2. Detección de Módulos Funcionales ---
     print(f"🔹 Fase 2: Detección de Módulos Funcionales ({CLUSTERING_METHOD}, K={N_CLUSTERS})")
-    labels, protein_module_map = detect_modules(
-        final_embeddings, ordered_protein_ids, n_clusters=N_CLUSTERS, clustering_method=CLUSTERING_METHOD
-    )
+    labels, protein_module_map = detect_modules(final_embeddings, ordered_protein_ids, n_clusters=N_CLUSTERS, clustering_method=CLUSTERING_METHOD)
 
     # Visualización t-SNE
     if labels is not None and len(np.unique(labels[labels != -1])) > 1:
@@ -40,9 +45,9 @@ def main():
         print("No hay suficientes módulos válidos para visualizar.")
 
     # --- 3. Cargar datos adicionales para análisis GO ---
-    go_terms_df = pd.read_csv(os.path.join(BASE_OUTPUT_DIR, "..", "data", "Input", "go.csv"), sep='\\t')
-    protein_metadata_df = pd.read_csv(os.path.join(BASE_OUTPUT_DIR, "..", "data", "Input", "metadata_proteina.csv"))
-    go_metadata_df = pd.read_csv(os.path.join(BASE_OUTPUT_DIR, "..", "data", "Input", "metadata_go.csv"))
+    go_terms_df = pd.read_csv(go_path, sep='\t')
+    protein_metadata_df = pd.read_csv(protein_metadata_path, sep=',')
+    go_metadata_df = pd.read_csv(go_metadata_path, sep=',')
     all_proteins = ordered_protein_ids
 
     # --- 4. Análisis y Evaluación de Módulos ---
@@ -98,11 +103,6 @@ def main():
     output_path = os.path.join(BASE_OUTPUT_DIR, "proteinas_con_go_representativo.csv")
     protein_go_df.to_csv(output_path, index=False)
     print(f"\nLista de nodos con GOs representativos guardada en: {output_path}")
-
-
-    module_assignments_df = pd.DataFrame(list(protein_module_map.items()), columns=['proteina', 'modulo'])
-    module_assignments_df.to_csv('protein_module_assignments.csv', sep='\t', index=False)
-    print(f"Asignaciones de módulos guardadas en 'protein_module_assignments.csv'")
 
 if __name__ == "__main__":
     main()

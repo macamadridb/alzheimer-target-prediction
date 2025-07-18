@@ -4,7 +4,8 @@ import psutil
 import torch
 import time
 import pandas as pd
-import numpy as np # Importar numpy para np.unique en caso de visualización
+import numpy as np 
+import random 
 
 # Importar funciones de los otros archivos
 from data_preprocessing import *
@@ -13,6 +14,18 @@ from training_evaluation import *
 from module_analysis import *
 from torch_geometric.data import Data
 from torch_geometric.transforms import RandomLinkSplit
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed) # Para todas las GPUs
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.benchmark = False # Para mejor rendimiento, pero menos determinista
+    torch.backends.cudnn.deterministic = True # ¡Importante para determinismo en CUDA!
+    torch.use_deterministic_algorithms(True) # Para ciertas operaciones en CPU
+
+
+set_seed(42) 
 
 # --- Configuración de Rutas de Datos ---
 BASE_INPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "GNN-GO", "input") 
