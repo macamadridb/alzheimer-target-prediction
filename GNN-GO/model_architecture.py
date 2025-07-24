@@ -17,7 +17,8 @@ class GNNEncoder(nn.Module):
 
     def forward(self, x, edge_index, edge_attr):
         x = self.conv1(x, edge_index, edge_attr=edge_attr)
-        x = F.elu(x) 
+        x = F.elu(x)  
+        # funcion de activacion
         x = self.dropout(x)
 
         x = self.conv2(x, edge_index, edge_attr=edge_attr)

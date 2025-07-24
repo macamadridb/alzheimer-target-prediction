@@ -63,6 +63,7 @@ def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)"
         print("No hay puntos válidos para visualizar después de filtrar ruido.")
         return
 
+    # UMAP para visualizar los embeddings
     tsne = TSNE(n_components=2,
                 random_state=42,
                 perplexity=min(30.0, embeddings_filtered.shape[0]-1),
@@ -226,3 +227,4 @@ def assign_module_go_to_proteins(results):
                 'Term_Name_Clean': term_name
             })
     return pd.DataFrame(rows)
+

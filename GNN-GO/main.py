@@ -46,6 +46,7 @@ PREDICTOR_HIDDEN_CHANNELS = 64
 
 LEARNING_RATE = 0.001
 EPOCHS = 100 # Número de épocas de entrenamiento
+# probar con 150
 
 # --- Configuración de Ontología GO ---
 GO_ONTOLOGY_FILTER = 'all' # Opciones: 'all', 'BP', 'MF', 'CC'
