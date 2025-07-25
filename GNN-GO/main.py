@@ -37,7 +37,7 @@ BASE_INPUT_DIR = os.path.join(os.path.dirname(__file__),"input")
 BASE_OUTPUT_DIR = os.path.join(os.path.dirname(__file__),"output") 
 # Crear paths individuales
 edge_path = os.path.join(BASE_INPUT_DIR, "Edge.csv")
-go_path = os.path.join(BASE_INPUT_DIR, "Go.csv")
+go_path = os.path.join(BASE_INPUT_DIR, "GO.csv")
 protein_metadata_path = os.path.join(BASE_INPUT_DIR, "metadata_proteins.csv")
 go_metadata_path = os.path.join(BASE_INPUT_DIR, "metadata_GO.csv")
 
