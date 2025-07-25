@@ -1,3 +1,4 @@
+# main_hyperparameter_tuning.py
 import os
 import platform
 import psutil
@@ -8,11 +9,10 @@ import numpy as np
 import random
 import optuna
 from optuna.pruners import MedianPruner
-# from optuna.samplers import TPESampler # TPESampler es el sampler por defecto 
+# TPE Sampler para Optuna es por defecto, por eso no es necesario importarlo explícitamente
+import optuna.visualization as ov # Importar para visualizaciones
 
-# Optuna: biblioteca para la optimización de hiperparámetros
-# Optuna.pruners.MedianPruner: un podador que detiene las pruebas si su rendimiento es significativamente peor que el de otras pruebas en la misma etapa
-# Optuna.samplers.TPESampler: un muestreador que utiliza el algoritmo TPE (Tree-structured Parzen Estimator) por defecto para Optuna, es más eficiente que la busqueda aleatoria o grid search.
+# Importar funciones de los otros archivos (asegúrate de que estén accesibles)
 from data_preprocessing import *
 from model_architecture import *
 from training_evaluation import *
@@ -27,46 +27,48 @@ def set_seed(seed):
     random.seed(seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
-    # torch.use_deterministic_algorithms(True) # Asegura reproducibilidad en PyTorch
+    # torch.use_deterministic_algorithms(True) # Esto puede causar problemas con algunas operaciones de GNN
 
 # --- Configuración de Rutas de Datos ---
 BASE_INPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "GNN-GO", "input")
 BASE_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "GNN-GO", "output")
+
 # Crear paths individuales
 edge_path = os.path.join(BASE_INPUT_DIR, "Edge.csv")
 go_path = os.path.join(BASE_INPUT_DIR, "GO.csv")
 protein_metadata_path = os.path.join(BASE_INPUT_DIR, "metadata_proteins.csv")
 go_metadata_path = os.path.join(BASE_INPUT_DIR, "metadata_GO.csv")
 
-# Asegurarse de que los directorios de salida existen
+# Los directorios existen
 os.makedirs(BASE_OUTPUT_DIR, exist_ok=True)
 
-# --- FLujo Principal para Optuna ---
-# Esta función será llamada por Optuna para cada trial, trial significa una combinación de hiperparámetros.
-# Trial es el objeto que utiliza optuna, permite sugerir hiperparámetros y reportar métricas.
+# --- Función Objetivo para Optuna ---
 def objective(trial, preprocessed_data_split):
     set_seed(42) # Mantener la semilla fija para cada trial para reproducibilidad dentro del trial.
 
-    # Determinar el dispositivo de cómputo
+    # Determinar el dispositivo de cómputo (se hace aquí ya que cada trial puede usar diferentes HPs)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # desempaquetar los datos preprocesados
-    data, in_channels_computed = preprocessed_data_split 
-    data = data.to(device) # Mover los datos al dispositivo adecuado
+    # Desempaquetar los datos preprocesados
+    data, in_channels_computed = preprocessed_data_split
+    data = data.to(device) # Mover los datos al dispositivo dentro del trial
 
-    
     # --- Sugerir Hiperparámetros con Optuna ---
     hidden_channels = trial.suggest_categorical("hidden_channels", [64, 128, 256])
     out_channels = trial.suggest_categorical("out_channels", [32, 64, 128])
     num_heads = trial.suggest_categorical("num_heads", [2, 4, 8])
     learning_rate = trial.suggest_loguniform("learning_rate", 1e-4, 1e-2)
     predictor_hidden_channels = trial.suggest_categorical("predictor_hidden_channels", [32, 64, 128])
-    dropout = trial.suggest_uniform("dropout", 0.0, 0.5) # Probabilidad de dropout para las capas GAT
-    epochs_for_trial = trial.suggest_int("epochs", 50, 200, step=50) # Puedes ajustar el rango de épocas
+    dropout_rate = trial.suggest_uniform("dropout_rate", 0.0, 0.5) # Renombrado a dropout_rate
+    activation_function_name = trial.suggest_categorical("activation_function", ["relu", "tanh"])
 
+    # El número de épocas también es un hiperparámetro. Ajusta el rango según sea necesario.
+    epochs_for_trial = trial.suggest_int("epochs", 50, 200, step=50)
 
     # --- Inicialización del Modelo ---
-    model = GNNEncoder(in_channels_computed, hidden_channels, out_channels, num_heads=num_heads, dropout=dropout).to(device)
+    model = GNNEncoder(in_channels_computed, hidden_channels, out_channels, 
+                       num_heads=num_heads, dropout_rate=dropout_rate, 
+                       activation_fn_name=activation_function_name).to(device)
     predictor = LinkPredictor(out_channels, predictor_hidden_channels, 1).to(device)
 
     optimizer = torch.optim.Adam(list(model.parameters()) + list(predictor.parameters()), lr=learning_rate)
@@ -75,47 +77,49 @@ def objective(trial, preprocessed_data_split):
     # --- Entrenamiento y Evaluación ---
     print(f"\n--- Trial {trial.number}: Entrenando con HPs: {trial.params} ---")
     best_val_auc = 0.0
-    trial_metrics_history = [] # Para almacenar métricas de cada epoch
+    # Diccionario para guardar las métricas del epoch con el mejor val_auc
+    best_val_auc_epoch_metrics = {} 
 
     for epoch in range(1, epochs_for_trial + 1):
         train_loss, train_auc, train_acc, train_precision, train_recall, train_f1 = train(model, predictor, data, optimizer, criterion)
-        # Asegúrate de que tu función test devuelva todas estas métricas
         val_loss, test_loss, val_auc, test_auc, val_acc, test_acc, val_precision, test_precision, val_recall, test_recall, val_f1, test_f1 = test(model, predictor, data)
-
-        # Guardar todas las métricas para este epoch y trial
-        trial_metrics_history.append({
-            'trial_id': trial.number,
-            'epoch': epoch,
-            'train_loss': train_loss, 'val_loss': val_loss.item(), 'test_loss': test_loss.item(),
-            'train_auc': train_auc, 'val_auc': val_auc, 'test_auc': test_auc,
-            'train_acc': train_acc, 'val_acc': val_acc, 'test_acc': test_acc,
-            'train_precision': train_precision, 'val_precision': val_precision, 'test_precision': test_precision,
-            'train_recall': train_recall, 'val_recall': val_recall, 'test_recall': test_recall,
-            'train_f1': train_f1, 'val_f1': val_f1, 'test_f1': test_f1,
-            **trial.params # Añade los hiperparámetros del trial
-        })
         
         # Reportar la métrica a Optuna para pruning
         trial.report(val_auc, epoch)
 
-        # Manejar pruning
-        if trial.should_prune():
-            print(f"Trial {trial.number} podado en la época {epoch} debido a un rendimiento bajo.")
-            raise optuna.exceptions.TrialPruned()
-
+        # Actualizar el mejor AUC de validación y guardar todas las métricas de ese epoch
         if val_auc > best_val_auc:
             best_val_auc = val_auc
+            best_val_auc_epoch_metrics = {
+                'epoch_at_best_val_auc': epoch,
+                'train_loss': train_loss, 'val_loss': val_loss.item(), 'test_loss': test_loss.item(),
+                'train_auc': train_auc, 'val_auc': val_auc, 'test_auc': test_auc,
+                'train_acc': train_acc, 'val_acc': val_acc, 'test_acc': test_acc,
+                'train_precision': train_precision, 'val_precision': val_precision, 'test_precision': test_precision,
+                'train_recall': train_recall, 'val_recall': val_recall, 'test_recall': test_recall,
+                'train_f1': train_f1, 'val_f1': val_f1, 'test_f1': test_f1,
+            }
+
+        if trial.should_prune():
+            print(f"Trial {trial.number} podado en la época {epoch} debido a un rendimiento bajo.")
+            # Si el trial es podado, aún queremos guardar las mejores métricas obtenidas hasta el momento
+            if best_val_auc_epoch_metrics: # Asegura que se haya registrado al menos un epoch
+                trial.set_user_attr("best_val_auc_epoch_metrics", best_val_auc_epoch_metrics)
+            raise optuna.exceptions.TrialPruned()
 
         if epoch % 10 == 0 or epoch == 1 or epoch == epochs_for_trial:
             print(f'  Epoch {epoch:03d} | Train Loss: {train_loss:.4f} | Val AUC: {val_auc:.4f}')
 
-    return best_val_auc # Optuna intentará maximizar este valor
-
+    # Al final del trial exitoso, guardar las métricas del mejor epoch
+    trial.set_user_attr("best_val_auc_epoch_metrics", best_val_auc_epoch_metrics)
+    
+    return best_val_auc
 
 # --- Función Principal para Ejecutar el Estudio de Optuna ---
 def main_optuna():
     start_total_time = time.time()
     print("Iniciando búsqueda de hiperparámetros con Optuna...")
+    print("\n--- Información del Sistema ---")
     print(f"Sistema Operativo: {platform.system()} {platform.release()} ({platform.version()})")
     print(f"Arquitectura: {platform.machine()}")
     print(f"Procesador (CPU): {platform.processor()}")
@@ -123,29 +127,24 @@ def main_optuna():
     
     total_ram_gb = psutil.virtual_memory().total / (1024**3)
     print(f"Memoria RAM Total: {total_ram_gb:.2f} GB")
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if torch.cuda.is_available():
         print(f"GPU Disponible: Sí")
         print(f"Nombre de GPU: {torch.cuda.get_device_name(0)}")
         print(f"Memoria GPU Total: {torch.cuda.get_device_properties(0).total_memory / (1024**3):.2f} GB")
-        device = torch.device('cuda')
     else:
         print("GPU Disponible: No (Usando CPU)")
     print(f"Dispositivo de Cómputo: {device}")
 
-    # --- Verificación de Archivos de Datos ---
+    print("\n--- Verificación de Archivos de Datos ---")
     if not os.path.isdir(BASE_INPUT_DIR):
         print(f"🚨 Error: El directorio de entrada '{BASE_INPUT_DIR}' no existe.")
         exit()
 
     EXPECTED_FILES = [
-        "Edge.csv",
-        "GO.csv",
-        "metadata_proteins.csv",
-        "metadata_GO.csv"
+        "Edge.csv", "GO.csv", "metadata_proteins.csv", "metadata_GO.csv"
     ]
-
     for filename in EXPECTED_FILES:
         filepath = os.path.join(BASE_INPUT_DIR, filename)
         if not os.path.exists(filepath):
@@ -154,8 +153,9 @@ def main_optuna():
             exit()
     print("✔️ Todos los archivos de datos encontrados en el directorio de entrada.")
 
+    # --- PREPROCESAMIENTO DE DATOS (FUERA DEL BUCLE DE OPTUNA) ---
     print("\n--- Fase Previa: Carga y Preprocesamiento de Datos (una sola vez) ---")
-
+    
     # 1. Carga de archivos
     edges_df, go_terms_df, protein_metadata_df, go_metadata_df = load_files(
         edge_path, go_path, protein_metadata_path, go_metadata_path)
@@ -199,18 +199,34 @@ def main_optuna():
     preprocessed_data_split = (data_for_training, in_channels_computed)
     print("Preprocesamiento de datos completado y listo para Optuna.")
 
+    # --- Guardar descripción del espacio de búsqueda ---
+    search_space_description = f"""
+    Espacio de Búsqueda de Hiperparámetros (Optuna):
+    -----------------------------------------------
+    - hidden_channels: {['64', '128', '256']} (Categórico)
+    - out_channels: {['32', '64', '128']} (Categórico)
+    - num_heads: {['2', '4', '8']} (Categórico)
+    - learning_rate: [1e-4, 1e-2] (Log-uniforme)
+    - predictor_hidden_channels: {['32', '64', '128']} (Categórico)
+    - dropout_rate: [0.0, 0.5] (Uniforme)
+    - activation_function: {['relu', 'tanh']} (Categórico)
+    - epochs: [50, 200] con paso de 50 (Entero)
+    """
+    search_space_path = os.path.join(BASE_OUTPUT_DIR, "optuna_search_space.txt")
+    with open(search_space_path, "w") as f:
+        f.write(search_space_description)
+    print(f"\nDescripción del espacio de búsqueda guardada en: {search_space_path}")
+
+
     # Configurar el estudio de Optuna
-    # `direction="maximize"` porque queremos maximizar el AUC de validación
-    # `sampler` por defecto es TPESampler, que es bueno.
-    # `pruner` para detener trials no prometedores. MedianPruner es un buen punto de partida.
     study = optuna.create_study(
         direction="maximize",
         pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=10, interval_steps=1),
         sampler=optuna.samplers.TPESampler(seed=42) # Asegura reproducibilidad del sampler
     )
 
-    # Ejecutar la optimización
-    n_trials = 10 # Número de combinaciones de hiperparámetros a probar
+    # Ejecutar la optimización, pasando los datos preprocesados
+    n_trials = 50 # Ajusta este valor según tu capacidad computacional y tiempo
     print(f"\nIniciando {n_trials} trials de búsqueda de hiperparámetros...")
     # Usamos una función lambda para pasar argumentos adicionales a `objective`
     study.optimize(lambda trial: objective(trial, preprocessed_data_split), n_trials=n_trials, show_progress_bar=True)
@@ -220,11 +236,58 @@ def main_optuna():
     print(f"  Valor (AUC de validación): {study.best_value:.4f}")
     print(f"  Mejores Hiperparámetros: {study.best_params}")
 
-    # Opcional: Guardar los resultados del estudio
     study_results_path = os.path.join(BASE_OUTPUT_DIR, "optuna_study_results.csv")
     df_results = study.trials_dataframe()
     df_results.to_csv(study_results_path, index=False)
-    print(f"\nResultados completos del estudio guardados en: {study_results_path}")
+    print(f"\nResultados completos del estudio (incluyendo HPs y estado) guardados en: {study_results_path}")
+
+    # --- Generar visualizaciones de Optuna ---
+    print("\n--- Generando visualizaciones de Optuna (requiere Plotly) ---")
+    try:
+        fig_history = ov.plot_optimization_history(study)
+        fig_history.write_html(os.path.join(BASE_OUTPUT_DIR, "optuna_optimization_history.html"))
+        print(f"Historia de optimización guardada en: {os.path.join(BASE_OUTPUT_DIR, 'optuna_optimization_history.html')}")
+        
+        fig_importance = ov.plot_param_importances(study)
+        fig_importance.write_html(os.path.join(BASE_OUTPUT_DIR, "optuna_param_importances.html"))
+        print(f"Importancia de parámetros guardada en: {os.path.join(BASE_OUTPUT_DIR, 'optuna_param_importances.html')}")
+        
+        fig_parallel = ov.plot_parallel_coordinate(study)
+        fig_parallel.write_html(os.path.join(BASE_OUTPUT_DIR, "optuna_parallel_coordinate.html"))
+        print(f"Gráfico de coordenadas paralelas guardado en: {os.path.join(BASE_OUTPUT_DIR, 'optuna_parallel_coordinate.html')}")
+
+    except Exception as e:
+        print(f"No se pudieron generar las visualizaciones de Optuna. Asegúrate de que 'plotly' esté instalado (`pip install plotly`). Error: {e}")
+
+    # --- Guardar las 10 mejores arquitecturas basadas en métricas de TEST ---
+    print("\n--- Guardando las 10 mejores arquitecturas basadas en Test AUC ---")
+    completed_trials = []
+    for trial in study.trials:
+        if trial.state == optuna.trial.TrialState.COMPLETE:
+            # Recuperar los hiperparámetros y las métricas guardadas
+            hparams = trial.params
+            metrics = trial.user_attrs.get("best_val_auc_epoch_metrics", {})
+            
+            # Combinar HPs y métricas
+            trial_data = {**hparams, **metrics}
+            trial_data['trial_id'] = trial.number
+            trial_data['value_optimized_by_optuna'] = trial.value # El best_val_auc
+            completed_trials.append(trial_data)
+
+    if completed_trials:
+        df_all_completed_trials = pd.DataFrame(completed_trials)
+        # Ordenar por 'test_auc' de forma descendente y tomar los top 10
+        # Puedes cambiar 'test_auc' por 'test_f1' si prefieres esa métrica
+        top_10_architectures = df_all_completed_trials.sort_values(by='test_auc', ascending=False).head(10)
+        
+        top_10_path = os.path.join(BASE_OUTPUT_DIR, "top_10_architectures_test_metrics.csv")
+        top_10_architectures.to_csv(top_10_path, index=False)
+        print(f"Las 10 mejores arquitecturas (basadas en Test AUC) guardadas en: {top_10_path}")
+        print("\nColumnas del archivo de las 10 mejores arquitecturas:")
+        print(top_10_architectures.columns.tolist())
+    else:
+        print("No hay trials completados para generar el archivo de las 10 mejores arquitecturas.")
+
 
     end_total_time = time.time()
     total_execution_time = end_total_time - start_total_time

@@ -1,0 +1,12 @@
+
+    Espacio de Búsqueda de Hiperparámetros (Optuna):
+    -----------------------------------------------
+    - hidden_channels: ['64', '128', '256'] (Categórico)
+    - out_channels: ['32', '64', '128'] (Categórico)
+    - num_heads: ['2', '4', '8'] (Categórico)
+    - learning_rate: [1e-4, 1e-2] (Log-uniforme)
+    - predictor_hidden_channels: ['32', '64', '128'] (Categórico)
+    - dropout_rate: [0.0, 0.5] (Uniforme)
+    - activation_function: ['relu', 'tanh'] (Categórico)
+    - epochs: [50, 200] con paso de 50 (Entero)
+    

@@ -7,8 +7,8 @@ import pandas as pd
 import numpy as np 
 import random 
 import optuna
-from optuna.pruners import MedianPruner
-from optuna.samplers import TPESampler
+from optuna.pruners import MedianPruner # para pruning de estudios
+# from optuna.samplers import TPESampler # no es necesario, ya que se usa el sampler por defecto
 
 # Importar funciones de los otros archivos
 from data_preprocessing import *

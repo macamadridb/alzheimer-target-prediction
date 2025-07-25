@@ -21,10 +21,8 @@ class GNNEncoder(nn.Module):
         # Seleccionar la función de activación basada en el nombre
         if activation_fn_name == "relu":
             self.activation_fn = F.relu
-        elif activation_fn_name == "elu":
-            self.activation_fn = F.elu
-        elif activation_fn_name == "leaky_relu":
-            self.activation_fn = F.leaky_relu
+        elif activation_fn_name == "tanh":
+            self.activation_fn = F.tanh
         else:
             raise ValueError(f"Función de activación '{activation_fn_name}' no soportada.")
 
