@@ -6,6 +6,9 @@ import time
 import pandas as pd
 import numpy as np 
 import random 
+import optuna
+from optuna.pruners import MedianPruner
+from optuna.samplers import TPESampler
 
 # Importar funciones de los otros archivos
 from data_preprocessing import *
@@ -28,8 +31,10 @@ def set_seed(seed):
 set_seed(42) 
 
 # --- Configuración de Rutas de Datos ---
-BASE_INPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "GNN-GO", "input") 
-BASE_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "GNN-GO", "output") 
+#BASE_INPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "GNN-GO", "input") 
+#BASE_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "GNN-GO", "output") 
+BASE_INPUT_DIR = os.path.join(os.path.dirname(__file__),"input") 
+BASE_OUTPUT_DIR = os.path.join(os.path.dirname(__file__),"output") 
 # Crear paths individuales
 edge_path = os.path.join(BASE_INPUT_DIR, "Edge.csv")
 go_path = os.path.join(BASE_INPUT_DIR, "Go.csv")
