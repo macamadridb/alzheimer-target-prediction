@@ -46,7 +46,7 @@ os.makedirs(BASE_OUTPUT_DIR, exist_ok=True)
 def objective(trial, preprocessed_data_split):
     set_seed(42) # Mantener la semilla fija para cada trial para reproducibilidad dentro del trial.
 
-    # Determinar el dispositivo de cómputo (se hace aquí ya que cada trial puede usar diferentes HPs)
+    # Determinar el dispositivo de cómputo (
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Desempaquetar los datos preprocesados
@@ -57,12 +57,12 @@ def objective(trial, preprocessed_data_split):
     hidden_channels = trial.suggest_categorical("hidden_channels", [64, 128, 256])
     out_channels = trial.suggest_categorical("out_channels", [32, 64, 128])
     num_heads = trial.suggest_categorical("num_heads", [2, 4, 8])
-    learning_rate = trial.suggest_loguniform("learning_rate", 1e-4, 1e-2)
+    learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True)
     predictor_hidden_channels = trial.suggest_categorical("predictor_hidden_channels", [32, 64, 128])
-    dropout_rate = trial.suggest_uniform("dropout_rate", 0.0, 0.5) # Renombrado a dropout_rate
+    dropout_rate = trial.suggest_float("dropout_rate", 0.0, 0.5) # Renombrado a dropout_rate
     activation_function_name = trial.suggest_categorical("activation_function", ["relu", "tanh"])
 
-    # El número de épocas también es un hiperparámetro. Ajusta el rango según sea necesario.
+    # El número de épocas 
     epochs_for_trial = trial.suggest_int("epochs", 50, 200, step=50)
 
     # --- Inicialización del Modelo ---
@@ -226,7 +226,7 @@ def main_optuna():
     )
 
     # Ejecutar la optimización, pasando los datos preprocesados
-    n_trials = 50 # Ajusta este valor según tu capacidad computacional y tiempo
+    n_trials = 10 
     print(f"\nIniciando {n_trials} trials de búsqueda de hiperparámetros...")
     # Usamos una función lambda para pasar argumentos adicionales a `objective`
     study.optimize(lambda trial: objective(trial, preprocessed_data_split), n_trials=n_trials, show_progress_bar=True)
