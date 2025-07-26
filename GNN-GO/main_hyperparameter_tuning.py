@@ -226,7 +226,7 @@ def main_optuna():
     )
 
     # Ejecutar la optimización, pasando los datos preprocesados
-    n_trials = 10 
+    n_trials = 20
     print(f"\nIniciando {n_trials} trials de búsqueda de hiperparámetros...")
     # Usamos una función lambda para pasar argumentos adicionales a `objective`
     study.optimize(lambda trial: objective(trial, preprocessed_data_split), n_trials=n_trials, show_progress_bar=True)
