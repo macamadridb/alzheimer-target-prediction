@@ -9,7 +9,11 @@ import random
 import optuna
 from optuna.pruners import MedianPruner # para pruning de estudios
 # from optuna.samplers import TPESampler # no es necesario, ya que se usa el sampler por defecto
-
+from captum.attr import IntegratedGradients
+import umap
+from sklearn.metrics.pairwise import cosine_similarity
+import matplotlib.pyplot as plt
+import seaborn as sns
 # Importar funciones de los otros archivos
 from data_preprocessing import *
 from model_architecture import *
@@ -43,18 +47,32 @@ go_metadata_path = os.path.join(BASE_INPUT_DIR, "metadata_GO.csv")
 
 # --- Parámetros del Modelo y Entrenamiento ---
 IN_CHANNELS = None 
-HIDDEN_CHANNELS = 128
+HIDDEN_CHANNELS = 64
 OUT_CHANNELS = 64 
 NUM_HEADS = 4 
 
 PREDICTOR_HIDDEN_CHANNELS = 64
 
-LEARNING_RATE = 0.001
-EPOCHS = 100 # Número de épocas de entrenamiento
-# probar con 150
+LEARNING_RATE = 0.0065862893175831
+EPOCHS = 200 # Número de épocas de entrenamiento
 
 # --- Configuración de Ontología GO ---
 GO_ONTOLOGY_FILTER = 'all' # Opciones: 'all', 'BP', 'MF', 'CC'
+
+# CAPTUM
+class ModelForAttribution(torch.nn.Module):
+    def __init__(self, encoder, predictor):
+        super().__init__()
+        self.encoder = encoder
+        self.predictor = predictor
+
+    def forward(self, x_input, edge_index_input, edge_attr_input, edge_label_index_input):
+        # Captum pasará x, edge_index y edge_attr como 'inputs' y 'additional_forward_args'.
+        # Asegúrate de que `edge_attr_input` sea un tensor o None según lo que tu encoder espere.
+        z = self.encoder(x_input, edge_index_input, edge_attr=edge_attr_input)
+        src, dst = edge_label_index_input[0], edge_label_index_input[1]
+        out = self.predictor(z[src], z[dst])
+        return out.squeeze(1) # Para que la salida sea 1D para cada predicción de enlace
 
 # --- FLujo Principal ---
 def main():
@@ -113,7 +131,7 @@ def main():
     protein_to_idx, idx_to_protein, all_proteins = create_node_mappings(edges_df, go_terms_df, protein_metadata_df)
     
     print(f"Creando características de nodos (features) con filtro GO: '{GO_ONTOLOGY_FILTER}'...")
-    x, num_nodes_covered_by_go, num_go_terms_used, _, _, _, _ = create_node_features(
+    x, num_nodes_covered_by_go, num_go_terms_covered, le_target_type, le_deg, mlb_target_group, mlb_go, idx_to_go_term_id = create_node_features(
         protein_to_idx,
         go_terms_df,
         protein_metadata_df,
@@ -130,7 +148,7 @@ def main():
     print("\n--- Resumen del Grafo Cargado ---")
     print(f"  Total de Nodos (Proteínas únicas): {x.shape[0]}")
     print(f"  Nodos con GO terms cubiertos por la ontología '{GO_ONTOLOGY_FILTER}': {num_nodes_covered_by_go}")
-    print(f"  Número de GO terms únicos utilizados (tras filtro '{GO_ONTOLOGY_FILTER}'): {num_go_terms_used}")
+    print(f"  Número de GO terms únicos utilizados (tras filtro '{GO_ONTOLOGY_FILTER}'): {num_go_terms_covered}")
     print(f"  Total de Aristas originales (interacciones únicas): {num_edges_original}")
     print(f"  Total de Aristas en el grafo (bidireccional): {num_edges_bidirectional}")
     print(f"  Dimensión de atributos de arista (`interaction_score`): {edge_attr.shape[1]}")
@@ -183,6 +201,9 @@ def main():
     data = data.to(device)
 
     results = []
+    best_val_auc = 0.0 # Inicializamos con un valor bajo para que la primera época sea la "mejor"
+    best_epoch = 0
+    best_model_state = None # Para guardar los pesos del modelo
     print(f"Comenzando el entrenamiento por {EPOCHS} épocas...")
     for epoch in range(1, EPOCHS + 1):
         train_loss, train_auc, train_acc, train_precision, train_recall, train_f1 = train(model, predictor, data, optimizer, criterion)
@@ -211,6 +232,18 @@ def main():
         'test_f1': test_f1
     })
         
+        # comprobar si la AUC de validación es mejor que la mejor registrada
+        if val_auc > best_val_auc:
+                    best_val_auc = val_auc
+                    best_epoch = epoch
+                    # Guardar una copia del estado del modelo y del predictor
+                    best_model_state = {
+                        'model': model.state_dict(),
+                        'predictor': predictor.state_dict()
+                    }
+                    print(f"    ⭐ Nueva mejor AUC de validación en época {epoch}: {best_val_auc:.4f}")
+
+        
         # Mostrar métricas cada 10 épocas (o al inicio y al final)
         if epoch % 10 == 0 or epoch == 1 or epoch == EPOCHS:
             print(f'  Epoch: {epoch:03d} | '
@@ -226,9 +259,20 @@ def main():
     results_df.to_csv(output_path, index=False)
     print(f"\nMétricas guardadas en: {output_path}")
 
+    print(f"\nEntrenamiento del modelo GNN completado.")
+    print(f"La mejor época de validación fue la {best_epoch} con un AUC de {best_val_auc:.4f}.")
 
-    print("\nEntrenamiento del modelo GNN completado. Generando embeddings finales...")
+    # Cargar los pesos del mejor modelo
+    if best_model_state:
+        model.load_state_dict(best_model_state['model'])
+        predictor.load_state_dict(best_model_state['predictor'])
+        print(f"Cargando los pesos del modelo de la época {best_epoch} para generar los embeddings finales.")
+    else:
+        print("Advertencia: No se encontró un estado de modelo guardado (esto podría ocurrir si EPOCHS es 0 o si no hay mejora). Usando los pesos finales del entrenamiento.")
+
+    print("Generando embeddings finales con el mejor modelo...")
     model.eval()
+
     with torch.no_grad():
         final_embeddings = model(data.x, data.edge_index, data.edge_attr).cpu().numpy()
     print(f"Embeddings finales generados. Dimensión: {final_embeddings.shape}")
@@ -242,7 +286,6 @@ def main():
     emb_df.to_csv(emb_output_path)
 
     print(f"[INFO] Embeddings guardados en: {emb_output_path}")
-
 
     # --- Tiempo de Ejecución ---
     end_time = time.time()

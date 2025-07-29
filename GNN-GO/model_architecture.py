@@ -5,7 +5,7 @@ from torch_geometric.nn import GATConv
 import torch 
 
 class GNNEncoder(nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, num_heads=1, add_self_loops=True, dropout_rate=0.5, activation_fn_name="relu"):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_heads=1, add_self_loops=True, dropout_rate=0.260034010588905, activation_fn_name="relu"):
         super(GNNEncoder, self).__init__()
         
         # GATConv aplica dropout tanto en los coeficientes de atención como en las transformaciones lineales

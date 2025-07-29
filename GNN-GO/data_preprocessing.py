@@ -165,6 +165,7 @@ def create_node_features(protein_to_idx, go_terms_df, protein_metadata_df, go_me
         mlb_go = MultiLabelBinarizer()
         go_features_df = pd.DataFrame(index=protein_features.index)  # DataFrame vacío si no hay términos GO
 
+    idx_to_go_term_id = {i: go_term for i, go_term in enumerate(mlb_go.classes_)} if unique_go_terms else {}
     # Combinar todas las características en un único DataFrame
     all_features_df = pd.concat([
         protein_features[['Target_type_encoded', 'DEG_encoded', 'Target_group_score_normalized_scaled']],
@@ -175,7 +176,7 @@ def create_node_features(protein_to_idx, go_terms_df, protein_metadata_df, go_me
     # Convertir a tensor de PyTorch, asegurando el orden de los nodos
     X = torch.tensor(all_features_df.loc[list(protein_to_idx.keys())].values, dtype=torch.float)
     
-    return X, num_nodes_covered_by_go, num_go_terms_covered, le_target_type, le_deg, mlb_target_group, mlb_go
+    return X, num_nodes_covered_by_go, num_go_terms_covered, le_target_type, le_deg, mlb_target_group, mlb_go, idx_to_go_term_id
 
 def create_edge_index_and_attributes(edges_df, protein_to_idx):
 
