@@ -1,0 +1,37 @@
+--- Información del Sistema ---
+Sistema Operativo Windows 10 (10.0.19045)
+Arquitectura AMD64
+Procesador (CPU) Intel64 Family 6 Model 140 Stepping 1, GenuineIntel
+Núcleos de CPU (físicoslógicos) 48
+Memoria RAM Total 11.79 GB
+GPU Disponible No (Usando CPU)
+Dispositivo de Cómputo cpu
+
+--- Verificación de Archivos de Datos ---
+✔️ Todos los archivos de datos encontrados en el directorio de entrada.
+
+--- Fase 1 Carga y Preprocesamiento de Datos ---
+Cargando datasets CSV...
+Datasets cargados.
+Creando mapeos de proteínas a índices numéricos...
+Creando características de nodos (features) con filtro GO 'all'...
+Dimensión de las características de nodo (input para GNN) 6935
+Creando índices de aristas y atributos de aristas (interaction_score)...
+
+--- Resumen del Grafo Cargado ---
+  Total de Nodos (Proteínas únicas) 5390
+  Nodos con GO terms cubiertos por la ontología 'all' 5161
+  Número de GO terms únicos utilizados (tras filtro 'all') 6928
+  Total de Aristas originales (interacciones únicas) 430206
+  Total de Aristas en el grafo (bidireccional) 860412
+  Dimensión de atributos de arista (`interaction_score`) 1
+  Dimensión de características de nodo 6935
+Creando objeto Data de PyTorch Geometric...
+
+Dividiendo enlaces para entrenamientovalidaciónprueba (predicción de enlaces)...
+  Enlaces Positivos de Entrenamiento 344166
+  Enlaces Positivos de Validación 43020
+  Enlaces Positivos de Prueba 43020
+  Enlaces Negativos de Entrenamiento 344166
+  Enlaces Negativos de Validación 43020
+  Enlaces Negativos de Prueba 43020
