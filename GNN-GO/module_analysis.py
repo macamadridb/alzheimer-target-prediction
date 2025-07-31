@@ -2,104 +2,16 @@
 
 import numpy as np
 import pandas as pd
-from sklearn.cluster import MiniBatchKMeans, DBSCAN
-from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
 import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
+import umap.umap_ as umap 
 import scipy.stats as stats
 from statsmodels.stats.multitest import multipletests
 from collections import defaultdict
+import seaborn as sns
 
-def detect_modules(embeddings, protein_ids, n_clusters=None, clustering_method='kmeans', random_state=42):
-    
-    
-    labels = None
-    if clustering_method == 'kmeans':
-        if n_clusters is None:
-            print("Para K-Means, 'n_clusters' debe ser especificado.")
-            return None, None
-        print(f"Detectando módulos con MiniBatchKMeans (n_clusters={n_clusters})...")
-        clusterer = MiniBatchKMeans(n_clusters=n_clusters, random_state=random_state, n_init='auto')
-        labels = clusterer.fit_predict(embeddings)
-    elif clustering_method == 'dbscan':
-        print("Detectando módulos con DBSCAN. Considera ajustar eps y min_samples.")
-        clusterer = DBSCAN(eps=0.5, min_samples=5) 
-        labels = clusterer.fit_predict(embeddings)
-    else:
-        print(f"Método de clustering '{clustering_method}' no soportado.")
-        return None, None
-
-    protein_module_map = {protein_ids[i]: labels[i] for i in range(len(protein_ids))}
-    
-    unique_labels = np.unique(labels) # Obtener etiquetas únicas
-    valid_labels = unique_labels[unique_labels != -1] # Excluir el ruido (-1)
-    
-    if len(valid_labels) > 1:
-        valid_indices = labels != -1
-        valid_embeddings = embeddings[valid_indices]
-        valid_cluster_labels = labels[valid_indices]
-
-        if valid_embeddings.shape[0] > 1: 
-            silhouette_avg = silhouette_score(valid_embeddings, valid_cluster_labels)
-            davies_bouldin_avg = davies_bouldin_score(valid_embeddings, valid_cluster_labels)
-            calinski_harabasz_avg = calinski_harabasz_score(valid_embeddings, valid_cluster_labels)
-            print(f"Métricas de Clustering (excluyendo ruido):")
-            print(f"  Silhouette Score: {silhouette_avg:.4f}")
-            print(f"  Davies-Bouldin Index: {davies_bouldin_avg:.4f}")
-            print(f"  Calinski-Harabasz Index: {calinski_harabasz_avg:.4f}")
-        else:
-            print("No se pueden calcular métricas de clustering: menos de 2 muestras válidas después de excluir ruido.")
-    else:
-        print("No se pueden calcular métricas de clustering: menos de 2 clusters válidos o solo ruido.")
-    
-    return labels, protein_module_map
-
-def visualize_embeddings(embeddings, labels, title="Embeddings de Nodos (t-SNE)", save_path=None):
-    valid_indices = labels != -1
-    embeddings_filtered = embeddings[valid_indices]
-    labels_filtered = labels[valid_indices]
-
-    if embeddings_filtered.shape[0] == 0:
-        print("No hay puntos válidos para visualizar después de filtrar ruido.")
-        return
-
-    # UMAP para visualizar los embeddings
-    tsne = TSNE(n_components=2,
-                random_state=42,
-                perplexity=min(30.0, embeddings_filtered.shape[0]-1),
-                max_iter=1000) 
-    # esta dando error el n_iter
-    embeddings_2d = tsne.fit_transform(embeddings_filtered)
-
-    plt.figure(figsize=(20, 20))
-    unique_labels = np.unique(labels_filtered)
-
-    for label in unique_labels:
-        idx = labels_filtered == label
-        plt.scatter(
-            embeddings_2d[idx, 0],
-            embeddings_2d[idx, 1],
-            s=12,
-            alpha=0.75,
-            label=f"Módulo {label}"
-        )
-
-    plt.title(title)
-    plt.xlabel("t-SNE Component 1")
-    plt.ylabel("t-SNE Component 2")
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.legend(title="Módulos", bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.tight_layout()
-    if save_path:
-        plt.savefig(save_path, dpi=300)
-        print(f"[INFO] Gráfico de embeddings guardado en: {save_path}")
-    else:
-        plt.show()
-
-    plt.close()
 
 def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_metadata_df, all_proteins_list):
-   
+   # Obtener todos los IDs de módulos únicos, incluyendo -1 (ruid)
     unique_modules = np.unique(list(protein_module_map.values()))
     results = []
 
@@ -111,14 +23,20 @@ def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_met
     protein_deg_map = protein_metadata_df.set_index('proteina')['DEG'].to_dict()
     protein_target_group_map = protein_metadata_df.set_index('proteina')['Target_group'].to_dict()
 
+    # Contar GO terms en todo el universo de proteinas con GO anotado
     all_go_terms_in_network = [term for prot_id in all_proteins_list if prot_id in protein_go_map for term in protein_go_map[prot_id]]
     global_go_counts = pd.Series(all_go_terms_in_network).value_counts().to_dict()
     
+    # Total de proteínas con al menos un GO term asignado
     proteins_in_go_universe = len(set(p for p in all_proteins_list if protein_go_map[p])) # Total de proteínas con al menos un GO term asignado
 
+    # Iterar sobre todos los módulos únicos, incluyendo -1
     for module_id in sorted(unique_modules):
-        if module_id == -1: 
-            continue
+        #if module_id == -1: 
+        #    continue
+
+        # Eliminamos la condición para que el clsuter de ruido sea procesado.
+
 
         # Proteinas del modulo, se filtran las prpoteinas que pertenecen al modulo actual
         module_proteins = [p for p, m in protein_module_map.items() if m == module_id]
@@ -127,46 +45,54 @@ def analyze_modules(protein_module_map, go_terms_df, protein_metadata_df, go_met
             continue
 
         # 1. Enriquecimiento GO
-        module_go_terms = [term for p in module_proteins for term in protein_go_map[p]]
-        module_go_counts = pd.Series(module_go_terms).value_counts().to_dict()
-        
-        enriched_go_terms_list = []
-        p_values = []
+        representative_go = "N/A (Ruido, no GO enriquecido)" if module_id == -1 else "N/A (No GO terms enriched)"
+        representative_go_p_value = 1.0
 
-        # Test hipergeométrico para cada GO term en el módulo
-        for go_term, module_count in module_go_counts.items():
-            k = module_count 
-            M = global_go_counts.get(go_term, 0)
-            n = len(module_proteins)
-            N = proteins_in_go_universe
+        if module_id != -1: # Realizar el test de enriquecimiento GO solo para clústeres válidos
+            module_go_terms = [term for p in module_proteins for term in protein_go_map[p]]
+            module_go_counts = pd.Series(module_go_terms).value_counts().to_dict()
             
-            if N == 0 or M == 0 or n == 0:
-                p_val = 1.0
-            else:
-                p_val = stats.hypergeom.sf(k-1, N, M, n)
-                # correcion por FDR (Benjamini-Hochberg)
-            
-            p_values.append(p_val)
-            enriched_go_terms_list.append(go_term)
-            
-        if p_values:
-            rejected, p_values_corrected, _, _ = multipletests(p_values, alpha=0.05, method='fdr_bh')
-            # Seleccionar el GO term con el menor p-valor corregido, este es el más representativo
-            
-            best_go_term = None
-            min_p_val_corrected = float('inf')
-            
-            for i, go_term in enumerate(enriched_go_terms_list):
-                if p_values_corrected[i] < min_p_val_corrected:
-                    min_p_val_corrected = p_values_corrected[i]
-                    best_go_term = go_term
-            
-            go_term_name = go_term_details.loc[best_go_term, 'Term_Name_Clean'] if best_go_term in go_term_details.index else 'N/A'
-            representative_go = f"{best_go_term} ({go_term_name})"
-            representative_go_p_value = min_p_val_corrected
-        else:
-            representative_go = "N/A (No GO terms enriched)"
-            representative_go_p_value = 1.0 
+            enriched_go_terms_list = []
+            p_values = []
+
+            # Test hipergeométrico para cada GO term en el módulo
+            for go_term, module_count in module_go_counts.items():
+                k = module_count 
+                M = global_go_counts.get(go_term, 0) # Total de proteínas con este GO term en el universo
+                n = len(module_proteins) # tamaño del módulo
+                N = proteins_in_go_universe # Total de proteínas con al menos un GO term en el universo
+                
+                # Para evitar divisiones por cero o valores no validos 
+                if N == 0 or M == 0 or n == 0:
+                    p_val = 1.0
+                else:
+                    # stats.hypergeom.sf(k-1, N, M, n) calcula el p-valor de la probabilidad de obtener al menos k éxitos en una muestra de tamaño n
+                    p_val = stats.hypergeom.sf(k-1, N, M, n)
+                    # correcion por FDR (Benjamini-Hochberg)
+                
+                p_values.append(p_val)
+                enriched_go_terms_list.append(go_term)
+                
+            if p_values:
+                # corregir p.values usando FDR
+                rejected, p_values_corrected, _, _ = multipletests(p_values, alpha=0.05, method='fdr_bh')
+                
+                # Seleccionar el GO term con el menor p-valor corregido, este es el más representativo
+                best_go_term = None
+                min_p_val_corrected = float('inf')
+                
+                for i, go_term in enumerate(enriched_go_terms_list):
+                    if rejected[i] and p_values_corrected[i] < min_p_val_corrected: 
+                        min_p_val_corrected = p_values_corrected[i]
+                        best_go_term = go_term
+                
+                if best_go_term:
+                    go_term_name = go_term_details.loc[best_go_term, 'Term_Name_Clean'] if best_go_term in go_term_details.index else 'N/A'
+                    representative_go = f"{best_go_term} ({go_term_name})"
+                    representative_go_p_value = min_p_val_corrected
+                else:
+                    representative_go = "N/A (No GO terms enriched)"
+                    representative_go_p_value = 1.0  # No se encontró GO enriquecido
 
         # 2. Distribución de Proteínas DEG
         deg_counts = defaultdict(int)
@@ -212,12 +138,16 @@ def assign_module_go_to_proteins(results):
 
     rows = []
     for module in results:
+        # Excluir el módulo de ruido de esta asignación si no queremos asignarle un GO representativo 'N/A'
+        if module['module_id'] == -1: 
+            continue # No asigna GO representativo a proteínas de ruido aquí
+
         rep_go = module['representative_go']
         if '(' in rep_go and ')' in rep_go:
             go_term = rep_go.split('(')[0].strip()
             term_name = rep_go.split('(')[1].replace(')', '').strip()
         else:
-            go_term = rep_go
+            go_term = rep_go # si es "N/A (No GO terms enriched)" o similar, se asigna tal cual
             term_name = ""
 
         for prot in module['module_proteins']:
