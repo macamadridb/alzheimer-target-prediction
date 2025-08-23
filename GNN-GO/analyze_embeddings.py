@@ -89,6 +89,8 @@ def main():
         print(f"\n**Módulo {res['module_id']}** (Tamaño: {len(res['module_proteins'])} proteínas)") # Añadido el tamaño del módulo
         print(f"  Go Representativo: {res['representative_go']}")
         print(f"  p-value (corregido): {res['representative_go_p_value']:.2e}") # Más claro que es corregido
+        print(f"  Combined score: {res['representative_combined_score']:.2f}") # Añadido el score combinado
+        print(f"  Z-Score: {res['representative_go_z_score']:.2f}") # Añadido el Z-Score del GO representativo
         
         # Formatear DEG
         deg_str = ", ".join([f"{count}% {status}" for status, count in res['deg_distribution'].items()])
@@ -106,6 +108,8 @@ def main():
             'module_size': len(res['module_proteins']), # Añadido el tamaño para el CSV
             'representative_go': res['representative_go'],
             'representative_go_p_value': res['representative_go_p_value'],
+            'representative_combined_score': res['representative_combined_score'],
+            'representative_go_z_score': res['representative_go_z_score'],
             'deg_distribution': str(res['deg_distribution']),
             'target_group_distribution': str(res['target_group_distribution']),
             'proteins': ", ".join(res['module_proteins']) # Opcional, lista de proteínas del módulo

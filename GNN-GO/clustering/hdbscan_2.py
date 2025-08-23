@@ -216,10 +216,10 @@ for label in sorted(unique_cluster_labels):
         cluster_id_counter += 1
 
 # Primero, graficar los puntos de ruido
-noise_indices = (labels == -1)
-if np.any(noise_indices):
-    plt.scatter(X_reduced[noise_indices, 0], X_reduced[noise_indices, 1],
-                color=color_map[-1], s=5, alpha=0.5, label='Ruido (-1)')
+#noise_indices = (labels == -1)
+#if np.any(noise_indices):
+#    plt.scatter(X_reduced[noise_indices, 0], X_reduced[noise_indices, 1],
+#                color=color_map[-1], s=5, alpha=0.5, label='Ruido (-1)')
 
 # Luego, graficar los puntos de cada clúster
 for label in sorted(unique_cluster_labels):
