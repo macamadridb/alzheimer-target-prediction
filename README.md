@@ -64,10 +64,10 @@ CALM3 GO:0005515
 ```
 
 3. **metadata_GO.csv** (separador: coma `,`, con encabezado)
-- Columnas **aceptadas** : `GO_term` , Term_Name_Clean` , `Ontology` valores típicos: `BP`,`MF`,`CC`, etc
+- Columnas **aceptadas** : `GO_term` , `Term_Name_Clean` , `Ontology` 
 
 4. **metadata_proteins.csv** (separador: coma `,`, con encabezado)
-- Columnas **aceptadas** : `protein/proteina` + **atributos** adicionales por columna (p. ej.,`Target_group`, `DEG`, etc )
+- Columnas **aceptadas** : `protein/proteina` + **atributos** adicionales por columna (p. ej.,`Target_group`, `DEG`, etc)
 
 
 
