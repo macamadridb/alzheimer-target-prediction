@@ -2,6 +2,7 @@
 
 # GNN-GO -- Pipeline reproducible para múltiples redes PPI -- ES
 Este repositorio contiene el código, datos y resultados asociados a la memoria de título de Macarena Madrid (Ingeniería Civil Informática, Universidad de Concepción).
+[English](README.md)
 
 ## Objetivo
 Esta plantilla permite ejecutar tu pipeline sobre cualquier red PPI, desde los datos brutos y caracterización de módulos funcionales:
@@ -45,6 +46,7 @@ pip install -r requirements.txt
 ```
 
 ## 3. Archivos de entrada (carpeta `input/`)
+
 1. **Edge.csv** (separador: tab `\t`, con encabezado)
 - Columnas **aceptadas** : `protein1/proteina1, protein2/proteina2, interaction_score.`
 - Ejemplo:
