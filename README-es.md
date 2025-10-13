@@ -46,6 +46,7 @@ pip install -r requirements.txt
 ```
 
 ## 3. Archivos de entrada (carpeta `input/`)
+:warning: **¡Asegúrate de que los archivos de tus nuevos datos se ubiquen en esta carpeta!**
 
 1. **Edge.csv** (separador: tab `\t`, con encabezado)
 - Columnas **aceptadas** : `protein1/proteina1, protein2/proteina2, interaction_score.`
