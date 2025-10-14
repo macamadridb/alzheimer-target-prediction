@@ -351,6 +351,12 @@ Al finalizar la ejecución, este notebook consolida el resultado del clustering 
 
 Este notebook es el **paso final del pipeline**, dedicado a la **validación biológica** y la **caracterización funcional de los módulos de proteínas (clústeres)** obtenidos en la etapa previa de HDBSCAN.
 
+:warning: **Configuración crítica**
+Antes de ejecutar este notebook, es necesario **ajustar manualmente** el sufijo de parámetros de HDBSCAN para que coincida con el **nombre del archivo de etiquetas de clúster** generado en la etapa previa.
+
+```python
+HDBSCAN_PARAMS_SUFFIX = "mcs20_ms20_cse0.00_alpha2.0"  # <<< AJUSTAR ESTE VALOR >>>
+```
 
 ####  A. Propósito
 
@@ -379,7 +385,7 @@ Este notebook es el **paso final del pipeline**, dedicado a la **validación bio
 - **Clúster de Ruido (`-1`):**  
   Se excluye del cálculo de enriquecimiento, pero **se reportan sus metadatos** para un posible análisis posterior.
 
-###  C. Resultados Clave
+####  C. Resultados Clave
 
 El notebook genera **dos reportes principales** en el directorio de resultados del clúster:
 
@@ -421,13 +427,6 @@ Los archivos generados permiten crear una **visualización de red funcional** en
    `Layout → Group Attributes Layout`  
    → Seleccionar la columna **Nodes: Term_Name_Clean** (o la columna del GO representativo definida) para **agrupar nodos por su función biológica más significativa**.
 
-
-:warning: **Configuración crítica**
-Antes de ejecutar este notebook, es necesario **ajustar manualmente** el sufijo de parámetros de HDBSCAN para que coincida con el **nombre del archivo de etiquetas de clúster** generado en la etapa previa.
-
-```python
-HDBSCAN_PARAMS_SUFFIX = "mcs20_ms20_cse0.00_alpha2.0"  # <<< AJUSTAR ESTE VALOR >>>
-```
 
 ---
 
