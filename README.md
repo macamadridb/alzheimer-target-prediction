@@ -409,7 +409,7 @@ The notebook generates **two main reports** in the cluster results directory:
 
 ---
 
-## 1. Module Analysis Summary
+1. Module Analysis Summary
 - **File:** `hdbscan_module_analysis_summary.csv`  
 - **Content:**  
   Contains **one row per module** including:
@@ -418,7 +418,7 @@ The notebook generates **two main reports** in the cluster results directory:
   - Percentage distributions of **DEG** and **Target_group**
 
 
-## 2. Node List with Representative GO Term
+2. Node List with Representative GO Term
 - **File:** `hdbscan_proteins_with_representative_go.csv`  
 - **Content:**  
   A table mapping each protein in a valid cluster to its **representative GO term and cleaned name**, facilitating the functional interpretation of nodes.
