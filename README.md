@@ -367,6 +367,86 @@ At the end of execution, this notebook consolidates the clustering output into t
 
 
 ### 📌 05_module_analysis.ipynb
+This notebook is the **final step of the pipeline**, dedicated to the **biological validation** and **functional characterization of protein modules (clusters)** obtained in the previous HDBSCAN stage.
+
+:warning: **Critical Configuration**  
+Before running this notebook, you must **manually adjust** the HDBSCAN parameter suffix to match the **cluster label file name** generated in the previous stage.
+
+```python
+HDBSCAN_PARAMS_SUFFIX = "mcs20_ms20_cse0.00_alpha2.0"  # <<< ADJUST THIS VALUE >>>
+```
+
+#### A. Purpose
+
+1. **Functional Validation (GO):**  
+   Assess the **biological significance** of each module through **Gene Ontology (GO) enrichment analysis**.
+
+2. **ID Standardization (Critical):**  
+   Define the protein universe (`N`) by loading the mapping `protein_to_idx` from `metadata.pt` to ensure correct correspondence between clusters and annotations.
+
+3. **Module Characterization:**  
+   Quantify the distribution of proteins with **Differential Expression (DEG)** and their membership in **Target Groups (`Target_group`)**.
+
+#### B. Data Flow and Methods
+
+- **GO Enrichment Method:**
+
+  1. **Hypergeometric Test:**  
+     Calculates the overrepresentation of GO terms within each cluster.
+
+  2. **FDR (Benjamini–Hochberg):**  
+     Adjusts *p-values* for multiple comparisons to prevent false positives.
+
+  3. **Combined Score:**  
+     Final metric used to rank GO terms (**−log₁₀(corrected p) × Z-Score**) and select the **most representative** GO term for each module.
+
+- **Noise Cluster (`-1`):**  
+  Excluded from the enrichment analysis, but **its metadata is still reported** for potential later exploration.
+
+#### C. Key Results
+
+The notebook generates **two main reports** in the cluster results directory:
+
+---
+
+## 1. Module Analysis Summary
+- **File:** `hdbscan_module_analysis_summary.csv`  
+- **Content:**  
+  Contains **one row per module** including:
+  - Cluster size  
+  - **Representative GO term** (with corrected *p-value*, **Combined Score**, and **Z-Score**)  
+  - Percentage distributions of **DEG** and **Target_group**
+
+
+## 2. Node List with Representative GO Term
+- **File:** `hdbscan_proteins_with_representative_go.csv`  
+- **Content:**  
+  A table mapping each protein in a valid cluster to its **representative GO term and cleaned name**, facilitating the functional interpretation of nodes.
+
+### 🖥️ Visualization in Cytoscape
+
+The generated files allow for the creation of a **functional network visualization** in Cytoscape.
+
+---
+
+#### 📌 Steps to Import Results into Cytoscape (using the original network):
+
+1. **Open Cytoscape**  
+   👉 Download from: https://cytoscape.org/
+
+2. **Import Network (Structure):**  
+   `File → Import → Network → File`  
+   → Select the original network file (**Edge.csv** or similar).
+
+3. **Import Attributes (Metadata):**  
+   `File → Import → Table → File`  
+   → Select the file `hdbscan_proteins_with_representative_go.csv`.  
+   ✅ Make sure the protein ID (`proteina`) correctly maps to the node ID in the network.
+
+4. **Apply Layout by Representative GO Term:**  
+   `Layout → Group Attributes Layout`  
+   → Select the column **Nodes: Term_Name_Clean** (or the defined representative GO column) to **group nodes according to their most significant biological function**.
+
 
 ---
 
