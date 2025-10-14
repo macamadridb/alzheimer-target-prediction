@@ -1,9 +1,9 @@
+[English](README.md)
 # alzheimer-target-prediction
 
 # GNN-GO -- Pipeline reproducible para múltiples redes PPI -- ES
 Este repositorio contiene el código, datos y resultados asociados a la memoria de título de Macarena Madrid (Ingeniería Civil Informática, Universidad de Concepción).
 Específicamente, el **código que se generó para ser replicable** se encuentra en la carpeta `gnngo`.
-[English](README.md)
 
 ## Objetivo
 Esta plantilla permite ejecutar tu pipeline sobre cualquier red PPI, desde los datos brutos y caracterización de módulos funcionales:
