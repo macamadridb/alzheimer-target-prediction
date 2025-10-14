@@ -164,7 +164,97 @@ Ejecuta el resto de las celdas del notebook (`01_data_preprocessing.ipynb`) en o
 
 ### 📌 02_tuning.ipynb
 
+El archivo **`02_tuning.ipynb`** es la fase de optimización de hiperparámetros. Su propósito es encontrar la combinación de hiperparémetros que maximice el rendimiento del modelo.
+
+#### A. Carga de componentes
+Al inicio, el notebook realiza los siguientes pasos clave:
+
+1. **Carga de Datos:** Se llama al objeto `data` y `metadata` guardados previamente en `output/`.
+
+2. **Definición de Arquitectura:** Se definen las clases `GNNEncoder` y `LinkPredictor`, estableciendo la estructura base del modelo.
+
+3. **Evaluación de Entrenamiento:** Se definen las funciones `def train` y `def test`, que contienen la lógica para la propagación y el cálculo de métricas (AUC, F1, Acc, etc.).
+
+#### B. División de enlaces
+En una celda dedicada, se utiliza `RandomLinkSplit` de PyTorch Geometric para dividir los enlaces del grafo cargado en tres conjuntos:
+
+- **80% para Entrenamiento (`train_data`)**: Se usa para la propagación GNN y la generación de *embeddings*.
+  
+- **10% para Validación (`val_data`)**: Se usa para evaluar el rendimiento de cada *trial* y guiar el proceso de poda (*pruning*) de Optuna.
+
+- **10% para Prueba (`test_data`)**: Se mantiene intocable hasta el final, pero se evalúa en cada *trial* para guardar la métrica final de la mejor arquitectura.
+
+#### C. Búsqueda de hiperparámetros con Optuna
+La función `def objective` es el núcleo de este notebook. Optuna la llama repetidamente con diferentes combinaciones de hiperparámetros:
+
+1. **Sugerencia de Hiperparámetros:**  
+   En Optuna debes proponer valores para parámetros clave como:
+   - `hidden_channels`, `out_channels` (Dimensiones del *embedding*).
+   - `num_heads` (Cabezas de atención del GATv2).
+   - `learning_rate`, `dropout_rate`.
+   - `epochs`.
+
+2. **Ejecución del Trial:**  
+   Para cada combinación sugerida, el modelo se inicializa y entrena, llamando repetidamente a `def train` y `def test`.
+
+3. **Poda (*Pruning*):**  
+   Se utiliza el podador `MedianPruner` para detener anticipadamente los *trials* que muestran un rendimiento de validación consistentemente bajo, ahorrando tiempo de cómputo.
+
+4. **Guardado de Resultados:**  
+   Al finalizar, el estudio guarda un registro completo de todos los *trials* y la mejor arquitectura encontrada en `output/optuna_study_results.csv`.  
+   Este archivo se usará como entrada para el entrenamiento final.
+
+:warning: **Consideraciones de Tiempo de Cómputo**
+La ejecución de la búsqueda de hiperparámetros es la fase **más intensiva en cómputo**.
+
+| **Factor**           | **Consideración** |
+|---------------------|------------------|
+| **Número de Trials** | Un mayor número de *trials* aumenta la probabilidad de encontrar el óptimo global, pero incrementa el tiempo de ejecución. El valor por defecto es `20`. |
+| **Épocas**           | El número de épocas sugerido por `trial.suggest_int("epochs", 50, 200, step=50)` también impacta directamente. |
+| **Hardware**         | El tiempo de ejecución varía drásticamente. Para grandes redes (como la red de AD), la ejecución de `20` trials puede tomar **20 horas o más** en hardware con GPU dedicada. Se recomienda ajustar el número de *trials* y las *épocas* según la disponibilidad de recursos. |
+
+```python
+# Modificación en la celda de ejecución de Optuna (si es necesario):
+# n_trials = 20  # <-- Cambia este valor para reducir o aumentar el tiempo de cómputo.
+```
+
 ### 📌 03_model_training.ipynb
+Este es el **último notebook** del pipeline, dedicado al entrenamiento final y a la evaluación rigurosa del modelo GNN.
+
+#### A. Propósito
+
+1. **Carga Óptima:**  
+   Carga los hiperparámetros óptimos (HPs) — *Learning Rate, Dropout, Canales, Épocas* — encontrados por Optuna desde el archivo `output/optuna_study_results.csv`.
+
+2. **Entrenamiento Final:**  
+   Entrena la arquitectura GNN seleccionada durante el número de épocas óptimo, **guardando el mejor modelo basado en el rendimiento del conjunto de Validación**.
+
+3. **Evaluación en Prueba:**  
+   Evalúa el modelo entrenado **una sola vez** en el conjunto de Prueba (`test_data`), que se ha mantenido completamente aislado durante las fases de entrenamiento y tuning. Este resultado proporciona la **métrica final y no sesgada** del modelo.
+
+###  B. Flujo de Datos
+
+El notebook utiliza:
+
+- **Modelo:** `GNNEncoder` (GAT con `edge_attr`) y `LinkPredictor` (MLP con concatenación).
+
+- **Datos:** El grafo `data` cargado desde `output/processed_graph_data.pt` y dividido de nuevo (80% Train, 10% Val, 10% Test) usando la **misma semilla** para replicabilidad.
+s
+- **Hiperparámetros:** Los valores de los HPs son asignados a las variables `HIDDEN_CHANNELS`, `LEARNING_RATE`, `FINAL_EPOCHS`, etc., directamente desde el resultado de Optuna.
+
+### C. Resultados Finales
+
+Al finalizar la ejecución:
+
+- **Modelos Guardados:**  
+  Los pesos del mejor `GNNEncoder` y `LinkPredictor` (basados en el mejor AUC de validación) se guardan en:
+  - `output/final_gnn_encoder.pt`
+  - `output/final_link_predictor.pt`
+
+- **Reporte de Métricas:**  
+  Se genera el archivo `output/final_metrics_report.csv`, que contiene el rendimiento definitivo del modelo en el conjunto de **Prueba** (Test AUC, Test F1-Score, etc.).
+
+
 
 ### 📌 04_clustering_search.ipynb
 
