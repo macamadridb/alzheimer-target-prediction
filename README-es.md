@@ -389,7 +389,7 @@ HDBSCAN_PARAMS_SUFFIX = "mcs20_ms20_cse0.00_alpha2.0"  # <<< AJUSTAR ESTE VALOR 
 
 El notebook genera **dos reportes principales** en el directorio de resultados del clúster:
 
-#### 1. Resumen del Análisis de Módulos
+1. Resumen del Análisis de Módulos
 - **Archivo:** `hdbscan_module_analysis_summary.csv`
 - **Contenido:**  
   Contiene **una fila por cada módulo** con:
@@ -398,7 +398,7 @@ El notebook genera **dos reportes principales** en el directorio de resultados d
   - Distribuciones porcentuales de **DEG** y **Target_group**.
 
 
-#### 2. Lista de Nodos con GO Representativo
+2. Lista de Nodos con GO Representativo
 - **Archivo:** `hdbscan_proteins_with_representative_go.csv`
 - **Contenido:**  
   Una tabla que asigna a cada proteína de un clúster válido **el término GO representativo y su nombre limpio**, facilitando la interpretación funcional de los nodos.
