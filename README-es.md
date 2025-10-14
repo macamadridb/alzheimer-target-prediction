@@ -2,6 +2,7 @@
 
 # GNN-GO -- Pipeline reproducible para múltiples redes PPI -- ES
 Este repositorio contiene el código, datos y resultados asociados a la memoria de título de Macarena Madrid (Ingeniería Civil Informática, Universidad de Concepción).
+Específicamente, el **código que se generó para ser replicable** se encuentra en la carpeta `gnngo`.
 [English](README.md)
 
 ## Objetivo
@@ -35,7 +36,6 @@ Esta plantilla permite ejecutar tu pipeline sobre cualquier red PPI, desde los d
 ## 2. Requisitos e instalación
 
 - Python 
-- Librerías clave: `pandas, numpy, networkx, scikit-learn, torch, torch-geometric, optuna, hdbscan, umap-learn, matplotlib`
 
 Instala todo con
 
@@ -232,7 +232,7 @@ Este es el **último notebook** del pipeline, dedicado al entrenamiento final, a
 3. **Evaluación en Prueba:**  
    Evalúa el modelo entrenado **una sola vez** en el conjunto de Prueba (`test_data`), que se ha mantenido completamente aislado durante las fases de entrenamiento y tuning. Este resultado proporciona la **métrica final y no sesgada** del modelo.
 
-###  B. Flujo de Datos
+####  B. Flujo de Datos
 
 El notebook utiliza:
 
@@ -242,7 +242,7 @@ El notebook utiliza:
 s
 - **Hiperparámetros:** Los valores de los HPs son asignados a las variables `HIDDEN_CHANNELS`, `LEARNING_RATE`, `FINAL_EPOCHS`, etc., directamente desde el resultado de Optuna.
 
-### C. Resultados Finales
+#### C. Resultados Finales
 
 Al finalizar la ejecución, este notebook genera **dos artefactos clave** en el directorio `output/`:
 
