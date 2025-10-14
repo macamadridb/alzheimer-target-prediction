@@ -219,7 +219,7 @@ La ejecución de la búsqueda de hiperparámetros es la fase **más intensiva en
 ```
 
 ### 📌 03_model_training.ipynb
-Este es el **último notebook** del pipeline, dedicado al entrenamiento final y a la evaluación rigurosa del modelo GNN.
+Este es el **último notebook** del pipeline, dedicado al entrenamiento final, a la generación de embeddings y a la evaluacion rigurosa del modelo GNN
 
 #### A. Propósito
 
@@ -244,15 +244,16 @@ s
 
 ### C. Resultados Finales
 
-Al finalizar la ejecución:
+Al finalizar la ejecución, este notebook genera **dos artefactos clave** en el directorio `output/`:
 
-- **Modelos Guardados:**  
-  Los pesos del mejor `GNNEncoder` y `LinkPredictor` (basados en el mejor AUC de validación) se guardan en:
-  - `output/final_gnn_encoder.pt`
-  - `output/final_link_predictor.pt`
+#### 1. Reporte Completo de Entrenamiento
+- **Archivo:** `output/resultados_metricas_entrenamiento.csv`
+- **Contenido:** Contiene todas las métricas (*Loss, AUC, Accuracy, F1*, etc.) para los conjuntos de **Entrenamiento**, **Validación** y **Prueba** en **CADA ÉPOCA** del entrenamiento final.
 
-- **Reporte de Métricas:**  
-  Se genera el archivo `output/final_metrics_report.csv`, que contiene el rendimiento definitivo del modelo en el conjunto de **Prueba** (Test AUC, Test F1-Score, etc.).
+#### 2. Embeddings Finales de Nodos
+- **Archivo:** `output/embeddings.csv`
+- **Contenido:** Los vectores de características (*embeddings*) generados por el mejor `GNNEncoder` para todos los nodos del grafo.
+
 
 
 
