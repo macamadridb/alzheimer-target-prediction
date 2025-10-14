@@ -347,18 +347,87 @@ Al finalizar la ejecución, este notebook consolida el resultado del clustering 
 - **Archivo:** `umap_hdbscan_optimal_plot.png`  
 - **Contenido:** Representación 2D de todos los embeddings, coloreados por su cluster final detectado por HDBSCAN.
 
-
-
-
 ### 📌 05_module_analysis.ipynb
 
+Este notebook es el **paso final del pipeline**, dedicado a la **validación biológica** y la **caracterización funcional de los módulos de proteínas (clústeres)** obtenidos en la etapa previa de HDBSCAN.
 
 
+####  A. Propósito
+
+1. **Validación Funcional (GO):**  
+   Determinar la **significancia biológica** de cada módulo mediante el análisis de **Enriquecimiento de Gene Ontology (GO)**.
+
+2. **Estandarización de IDs (Crítica):**  
+   Definir el universo de proteínas (`N`) cargando el mapeo `protein_to_idx` desde `metadata.pt` para asegurar la correcta correspondencia entre los clústeres y las anotaciones.
+
+3. **Caracterización de Módulos:**  
+   Cuantificar la distribución de proteínas con **Expresión Diferencial (DEG)** y su pertenencia a **Grupos Objetivo (`Target_group`)**.
+
+####  B. Flujo de Datos y Métodos
+
+- **Método de Enriquecimiento GO:**
+
+  1. **Test Hipergeométrico:**  
+     Calcula la sobrerrepresentación de términos GO en cada clúster.
+
+  2. **FDR (Benjamini-Hochberg):**  
+     Corrige los *p-values* por múltiples comparaciones para evitar falsos positivos.
+
+  3. **Combined Score:**  
+     Métrica final usada para ordenar términos GO (**− log₁₀(p_corregido) × Z-Score**) y seleccionar el GO **más representativo** del módulo.
+
+- **Clúster de Ruido (`-1`):**  
+  Se excluye del cálculo de enriquecimiento, pero **se reportan sus metadatos** para un posible análisis posterior.
+
+###  C. Resultados Clave
+
+El notebook genera **dos reportes principales** en el directorio de resultados del clúster:
+
+#### 1. Resumen del Análisis de Módulos
+- **Archivo:** `hdbscan_module_analysis_summary.csv`
+- **Contenido:**  
+  Contiene **una fila por cada módulo** con:
+  - Tamaño del clúster.
+  - **GO Representativo** (con su *p-values corregido*, **Combined Score** y **Z-Score**).
+  - Distribuciones porcentuales de **DEG** y **Target_group**.
 
 
+#### 2. Lista de Nodos con GO Representativo
+- **Archivo:** `hdbscan_proteins_with_representative_go.csv`
+- **Contenido:**  
+  Una tabla que asigna a cada proteína de un clúster válido **el término GO representativo y su nombre limpio**, facilitando la interpretación funcional de los nodos.
+
+### 🖥️ Visualización en Cytoscape
+
+Los archivos generados permiten crear una **visualización de red funcional** en Cytoscape.
+
+---
+
+#### 📌 Pasos para Importar Resultados en Cytoscape (usando la red original):
+
+1. **Abrir Cytoscape**  
+   👉 Descargar desde: https://cytoscape.org/
+
+2. **Importar Red (Estructura):**  
+   `File → Import → Network → File`  
+   → Seleccionar el archivo original de la red (**Edge.csv** o similar).
+
+3. **Importar Atributos (Metadatos):**  
+   `File → Import → Table → File`  
+   → Seleccionar el archivo `hdbscan_proteins_with_representative_go.csv`.  
+   ✅ Asegurarse de que el ID de la proteína (`proteina`) se mapee correctamente con el ID del nodo de la red.
+
+4. **Aplicar Layout por GO Representativo:**  
+   `Layout → Group Attributes Layout`  
+   → Seleccionar la columna **Nodes: Term_Name_Clean** (o la columna del GO representativo definida) para **agrupar nodos por su función biológica más significativa**.
 
 
+:warning: **Configuración crítica**
+Antes de ejecutar este notebook, es necesario **ajustar manualmente** el sufijo de parámetros de HDBSCAN para que coincida con el **nombre del archivo de etiquetas de clúster** generado en la etapa previa.
 
+```python
+HDBSCAN_PARAMS_SUFFIX = "mcs20_ms20_cse0.00_alpha2.0"  # <<< AJUSTAR ESTE VALOR >>>
+```
 
 ---
 
