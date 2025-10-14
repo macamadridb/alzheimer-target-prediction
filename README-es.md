@@ -34,16 +34,14 @@ Esta plantilla permite ejecutar tu pipeline sobre cualquier red PPI, desde los d
 - `README.md/`
 
 ## 2. Requisitos e instalación
-
-- Python 
-
-Instala todo con
+- **Python 3.10 o 3.11** (recomendado)
 
 ```bash
-python -m venv .venv && source .venv/bin/activate # (Linux/Mac)
-# .venv\Scripts\activate # (Windows PowerShell)
+# Instalar dependencias
 pip install -r requirements.txt
 ```
+
+
 
 ## 3. Archivos de entrada (carpeta `input/`)
 :warning: **¡Asegúrate de que los archivos de tus nuevos datos se ubiquen en esta carpeta!**
