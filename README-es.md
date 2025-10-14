@@ -13,7 +13,7 @@ Esta plantilla permite ejecutar tu pipeline sobre cualquier red PPI, desde los d
 4. Búsqueda del mejor clustering sobre los embeddings
 5. Análisis y caracterización de módulos funcionales
 
-
+---
 
 ## 1. Estructura
 
@@ -33,6 +33,7 @@ Esta plantilla permite ejecutar tu pipeline sobre cualquier red PPI, desde los d
 - `requirements.txt/`
 - `README.md/`
 
+---
 ## 2. Requisitos e instalación
 - **Python 3.10 o 3.11** (recomendado)
 
@@ -41,7 +42,7 @@ Esta plantilla permite ejecutar tu pipeline sobre cualquier red PPI, desde los d
 pip install -r requirements.txt
 ```
 
-
+---
 
 ## 3. Archivos de entrada (carpeta `input/`)
 :warning: **¡Asegúrate de que los archivos de tus nuevos datos se ubiquen en esta carpeta!**
@@ -252,10 +253,102 @@ Al finalizar la ejecución, este notebook genera **dos artefactos clave** en el 
 - **Archivo:** `output/embeddings.csv`
 - **Contenido:** Los vectores de características (*embeddings*) generados por el mejor `GNNEncoder` para todos los nodos del grafo.
 
-
-
-
 ### 📌 04_clustering_search.ipynb
+Este notebook realiza la optimización de hiperparámetros para **tres algoritmos de clustering** (`K-Means`, `DBSCAN` y `HDBSCAN`) utilizando los **embeddings finales generados por el GNN**.
+
+#### A. Flujo General
+
+1. **Normalización:**  
+   Los embeddings cargados son sometidos a una **normalización L2** para asegurar la consistencia.
+
+2. **Reducción de Dimensionalidad (UMAP):**  
+   Se utiliza **UMAP** para visualizar la estructura de los embeddings y analizar el resultado de los **clusters óptimos**.
+
+3. **Búsqueda Exhaustiva:**  
+   Se ejecuta una búsqueda por rejilla o rangos predefinidos para encontrar la **mejor configuración de hiperparámetros** basada en métricas de calidad intrínsecas (`Silhouette`, `Davies-Bouldin`, `Calinski-Harabasz`).
+
+#### B. Algoritmos y Configuraciones (Detalle)
+
+Estos notebooks realizan la optimización de tres algoritmos de **clustering** sobre los **embeddings finales**.
+
+#### 1. K-Means
+
+Se busca el número óptimo de **clusters (K)** mediante evaluación de métricas.
+
+- **Rango de Búsqueda:**  
+  El rango máximo de `K` a probar es ajustable y se define por la limitación:  
+  `min(50, embeddings_data.shape[0] - 1)`.
+
+- **Artefactos Generados** (en `output/clustering_optimization_results/`):
+
+  | Tipo                      | Archivo generado |
+  |--------------------------|------------------|
+  | **Gráfico de Evaluación** | `kmeans_k_evaluation_metrics.png` |
+  | **Visualización UMAP**    | `umap_kmeans_k_x_plot.png`        |
+
+#### 2. DBSCAN
+
+Se realiza una búsqueda exhaustiva en dos dimensiones: el **radio (`Eps`)** y el **mínimo de muestras (`Min Samples`)**.
+
+- **Rango de Búsqueda de `Eps` (Distancia Coseno):**  
+  Es ajustable y se explora un amplio espectro, típicamente cubriendo valores desde muy pequeños (por ejemplo, `0.001`) hasta valores grandes (por ejemplo, `1.5`).
+
+- **Rango de Búsqueda de `Min Samples`:**  
+  Es ajustable y recorre valores discretos desde `2` hasta `201` para variar la **densidad de los clusters**.
+
+- **Artefactos Generados** (en `output/clustering_optimization_results/`):
+
+  | Tipo                          | Archivo generado |
+  |------------------------------|------------------|
+  | **Resultados CSV**           | `dbscan_parameter_search_results_extended.csv` |
+  | **Mapas de Calor (Heatmaps)** | `dbscan_silhouette_heatmap.png`, `dbscan_noise_percentage_heatmap.png`, *(otros generados automáticamente)* |
+  | **Visualización UMAP**       | `umap_dbscan_eps_x_minS_x_plot.png` |
+
+#### 3. HDBSCAN
+
+Este algoritmo utiliza una búsqueda exhaustiva sobre **cuatro hiperparámetros clave**:  
+`min_cluster_size`, `min_samples`, `cluster_selection_epsilon` y `alpha`.
+
+- **Artefactos Generados** (en `output/clustering_optimization_results/`):
+
+  | Tipo                           | Archivo generado |
+  |-------------------------------|------------------|
+  | **Resultados CSV**            | `hdbscan_parameter_search_results_exhaustive.csv` |
+  | **Heatmaps 2D**               | `hdbscan_silhouette_best_heatmap.png`, `hdbscan_noise_best_heatmap.png`, *(otros mapas generados automáticamente)* |
+  | **Visualización UMAP**        | `umap_hdbscan_optimal_plot.png` |
+
+
+#### C. Parámetros óptimos en HDBSCAN
+El notebook final requiere que el usuario defina los **Hiperparámetros óptimos de HDBSCAN** (`min_cluster_size`, `min_samples`, `cluster_selection_epsilon`, `alpha`) basándose en los resultados del análisis previo.
+Se aplica **HDBSCAN una única vez** sobre los embeddings para generar el conjunto definitivo de clusters.
+
+Los siguientes hiperparámetros deben ser **actualizados manualmente** con los valores obtenidos de la mejor combinación en `04_clustering_search.ipynb`:
+
+| Variable                                | Descripción                                           | Valor por Defecto (Ejemplo) |
+|----------------------------------------|-------------------------------------------------------|-----------------------------|
+| `OPTIMAL_MIN_CLUSTER_SIZE`             | Tamaño mínimo de clúster                              | `20` |
+| `OPTIMAL_MIN_SAMPLES`                  | Mínimo de muestras para definir la densidad           | `20` |
+| `OPTIMAL_CLUSTER_SELECTION_EPSILON`    | Límite de distancia para fusionar clústeres           | `0.0` |
+| `OPTIMAL_ALPHA`                        | Factor de suavidad                                    | `2.0` |
+
+Resultados Finales (en `output/final_hdbscan_clusters/`)
+
+Al finalizar la ejecución, este notebook consolida el resultado del clustering en archivos definitivos:
+
+#### 1. 🏷️ Etiquetas de Cluster
+- **Archivo:** `hdbscan_cluster_labels.csv`  
+- **Contenido:** Un mapeo de cada ID de proteína a su etiqueta de cluster final (incluyendo el **ruido**, marcado como `-1`).
+
+#### 2. 📊 Resumen de Clústeres
+- **Archivo:** `hdbscan_cluster_summary.csv`  
+- **Contenido:** Lista de los clusters válidos y el tamaño de cada uno, ordenados por tamaño.
+
+#### 3. 🎨 Visualización UMAP
+- **Archivo:** `umap_hdbscan_optimal_plot.png`  
+- **Contenido:** Representación 2D de todos los embeddings, coloreados por su cluster final detectado por HDBSCAN.
+
+
+
 
 ### 📌 05_module_analysis.ipynb
 
