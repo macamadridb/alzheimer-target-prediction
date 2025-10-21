@@ -17,32 +17,36 @@ Esta plantilla permite ejecutar tu pipeline sobre cualquier red PPI, desde los d
 
 ## 1. Estructura
 
-gnngo/
-│
-├── input/                     
-│   ├── Edge.csv
-│   ├── GO.csv
-│   ├── metadata_GO.csv
-│   └── metadata_proteins.csv
-│
-├── output/                    
-│
-├── 01_data_preprocessing.ipynb   # Paso 1
-├── 02_tuning.ipynb               # Paso 2
-├── 03_model_training.ipynb       # Paso 3
-├── 04_clustering_search.ipynb    # Paso 4
-├── 05_module_analysis.ipynb      # Paso 5
-│
-└── README.md
+- `input/`
+  - `Edge.csv`
+  - `GO.csv`
+  - `metadata_GO.csv`
+  - `metadata_proteins.csv`
+
+- `output/`  
+
+- `01_data_preprocessing.ipynb` — Paso 1  
+- `02_tuning.ipynb` — Paso 2  
+- `03_model_training.ipynb` — Paso 3  
+- `04_clustering_search.ipynb` — Paso 4  
+- `05_module_analysis.ipynb` — Paso 5  
+
+- `requirements.txt`  
+
+
 
 ---
 ## 2. Requisitos e instalación
-- **Python 3.10 o 3.11** (recomendado)
+El proyecto fue desarrollado en **Python 3.10 o 3.11** y requiere la instalación de varias librerías adicionales para el procesamiento de datos y el entrenamiento del modelo GNN.
 
+Instala todas las librerías necesarias con:
 ```bash
 # Instalar dependencias
 pip install -r requirements.txt
 ```
+
+:bulb: Nota: Si cuentas con una GPU, puedes aprovecharla para acelerar el entrenamiento del modelo instalando la versión de PyTorch compatible con CUDA.
+Consulta las instrucciones oficiales en: https://pytorch.org/get-started/locally
 
 ---
 
