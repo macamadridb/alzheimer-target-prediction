@@ -24,26 +24,33 @@ This template allows you to run the entire pipeline on any PPI network, starting
   - `GO.csv`
   - `metadata_GO.csv`
   - `metadata_proteins.csv`
-- `outputs/`
-- `configs/`
-- `src/`:  
-  - `01_data_preprocessing.ipynb` — Step 1  
-  - `02_tuning.ipynb` — Step 2  
-  - `03_model_training.ipynb` — Step 3  
-  - `04_clustering_search.ipynb` — Step 4  
-  - `05_module_analysis.ipynb` — Step 5  
+
+- `output/`  
+
+- `01_data_preprocessing.ipynb` — Step 1  
+- `02_tuning.ipynb` — Step 2  
+- `03_model_training.ipynb` — Step 3  
+- `04_clustering_search.ipynb` — Step 4  
+- `05_module_analysis.ipynb` — Step 5  
+
 - `requirements.txt`  
-- `README.md`  
+- `README.md`
+
+
 
 ---
 
 ## 2. Requirements and Installation
-- **Python 3.10 or 3.11** (recommended)
+The project was developed using **Python 3.10 or 3.11** and requires the installation of several additional libraries for data processing and GNN model training.
+
+Install all required libraries with:
 
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 ```
+:bulb: Note: If you have a GPU, you can speed up model training by installing the CUDA-compatible version of PyTorch.
+Follow the official installation guide here: https://pytorch.org/get-started/locally
 ---
 
 ## 3. Input Files (folder `input/`)
