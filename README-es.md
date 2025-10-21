@@ -171,6 +171,17 @@ Ejecuta el resto de las celdas del notebook (`01_data_preprocessing.ipynb`) en o
 
 El archivo **`02_tuning.ipynb`** es la fase de optimización de hiperparámetros. Su propósito es encontrar la combinación de hiperparémetros que maximice el rendimiento del modelo.
 
+:warning: **Nota sobre la selección del dispositivo (CPU/GPU):**  
+Este cuaderno detecta automáticamente si existe una GPU disponible y asigna el dispositivo como:
+```python
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+```
+Sin embargo, en sistemas con memoria GPU limitada esto puede generar errores de falta de memoria durante el entrenamiento.
+En estos casos, se recomienda forzar el uso de CPU reemplazando dicha línea por:
+```python
+device = torch.device('cpu')
+```
+
 #### A. Carga de componentes
 Al inicio, el notebook realiza los siguientes pasos clave:
 
@@ -248,8 +259,12 @@ s
 - **Hiperparámetros:** Los valores de los HPs son asignados a las variables `HIDDEN_CHANNELS`, `LEARNING_RATE`, `FINAL_EPOCHS`, etc., directamente desde el resultado de Optuna.
 
 #### C. Resultados Finales
+Durante esta etapa, el grafo se divide nuevamente mediante **`RandomLinkSplit`**, método que separa los enlaces en subconjuntos de **Entrenamiento**, **Validación** y **Prueba**.  
+Esta división es **parte integral del proceso de evaluación**, ya que todas las métricas de rendimiento del modelo — *AUC, Accuracy, Precision, Recall y F1-score* — se calculan sobre estos conjuntos.  
+De esta manera se garantiza una evaluación consistente y replicable del desempeño del modelo en datos no vistos.
 
 Al finalizar la ejecución, este notebook genera **dos artefactos clave** en el directorio `output/`:
+
 
 #### 1. Reporte Completo de Entrenamiento
 - **Archivo:** `output/resultados_metricas_entrenamiento.csv`
