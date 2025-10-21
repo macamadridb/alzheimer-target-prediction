@@ -1,7 +1,7 @@
 [English](README.md)
 # alzheimer-target-prediction
 
-# GNN-GO -- Pipeline reproducible para múltiples redes PPI -- ES
+# GNN-GO -- Pipeline replicable para múltiples redes PPI -- ES
 Este repositorio contiene el código, datos y resultados asociados a la memoria de título de Macarena Madrid (Ingeniería Civil Informática, Universidad de Concepción).
 Específicamente, el **código que se generó para ser replicable** se encuentra en la carpeta `gnngo`.
 
@@ -76,7 +76,8 @@ CALM3 GO:0005515
 4. **metadata_proteins.csv** (separador: coma `,`, con encabezado)
 - Columnas **aceptadas** : `protein/proteina` + **atributos** adicionales por columna (p. ej.,`Target_group`, `DEG`, etc)
 
-- ## 4. Modificación y Reproducibilidad (Manual)
+ ## 4. Modificación y Replicabilidad (Manual)
+
 
 ### 📌 01_data_preprocessing.ipynb
 
@@ -356,15 +357,15 @@ Resultados Finales (en `output/final_hdbscan_clusters/`)
 
 Al finalizar la ejecución, este notebook consolida el resultado del clustering en archivos definitivos:
 
-#### 1. 🏷️ Etiquetas de Cluster
+#### 1. Etiquetas de Cluster
 - **Archivo:** `hdbscan_cluster_labels.csv`  
 - **Contenido:** Un mapeo de cada ID de proteína a su etiqueta de cluster final (incluyendo el **ruido**, marcado como `-1`).
 
-#### 2. 📊 Resumen de Clústeres
+#### 2. Resumen de Clústeres
 - **Archivo:** `hdbscan_cluster_summary.csv`  
 - **Contenido:** Lista de los clusters válidos y el tamaño de cada uno, ordenados por tamaño.
 
-#### 3. 🎨 Visualización UMAP
+#### 3. Visualización UMAP
 - **Archivo:** `umap_hdbscan_optimal_plot.png`  
 - **Contenido:** Representación 2D de todos los embeddings, coloreados por su cluster final detectado por HDBSCAN.
 
