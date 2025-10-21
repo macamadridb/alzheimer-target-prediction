@@ -1,10 +1,11 @@
 [Español](README-es.md)
 # alzheimer-target-prediction
 
-# GNN-GO — Reproducible Pipeline for Multiple PPI Networks — EN
+# GNN-GO — Replicable Pipeline for Multiple PPI Networks — EN
+
 
 This repository contains the code, data, and results associated with the undergraduate thesis of **Macarena Madrid** (Computer Engineering, Universidad de Concepción).  
-Specifically, the **code developed for reproducibility** is located in the `gnngo` directory.
+Specifically, the **code developed for replication** is located in the `gnngo` directory.
 
 ## Objective
 This template allows you to run the entire pipeline on any PPI network, starting from raw data to the characterization of functional modules:
@@ -78,7 +79,8 @@ CALM3 GO:0005515
 4. **metadata_proteins.csv** (separator: comma `,`, with header)
 - **Accepted columns:** : `protein/proteina` + additional **attributes** pr column (e.g.,`Target_group`, `DEG`, etc)
 
-## 4. Modification and Reproducibility (Manual)
+## 4. Modification and Replicability (Manual)
+
 
 ### 📌 01_data_preprocessing.ipynb
 
@@ -373,15 +375,15 @@ The following hyperparameters must be **manually updated** with the best values 
 **Final Results** (in `output/final_hdbscan_clusters/`)
 
 At the end of execution, this notebook consolidates the clustering output into the final result files:
-#### 1. 🏷️ Cluster Labels
+#### 1. Cluster Labels
 - **File:** `hdbscan_cluster_labels.csv`  
 - **Content:** A mapping of each protein ID to its final cluster label (including **noise**, marked as `-1`).
 
-#### 2. 📊 Cluster Summary
+#### 2. Cluster Summary
 - **File:** `hdbscan_cluster_summary.csv`  
 - **Content:** A list of valid clusters and their respective sizes, sorted by cluster size.
 
-#### 3. 🎨 UMAP Visualization
+#### 3. UMAP Visualization
 - **File:** `umap_hdbscan_optimal_plot.png`  
 - **Content:** 2D representation of all embeddings, colored according to their final cluster assigned by HDBSCAN.
 
