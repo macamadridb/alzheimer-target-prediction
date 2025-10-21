@@ -17,21 +17,23 @@ Esta plantilla permite ejecutar tu pipeline sobre cualquier red PPI, desde los d
 
 ## 1. Estructura
 
-- `input/`
-  - `Edge.csv`
-  - `GO.csv`
-  - `metadata_GO.csv`
-  - `metadata_proteins.csv`
-- `outputs/`
-- `configs/`
-- `src/`: 
-  - `01_data_preprocessing.ipynb/`             # Paso 1
-  - `02_tuning.ipynb/`                         # Paso 2
-  - `03_model_training.ipynb/`                 # Paso 3
-  - `04_clustering_search.ipynb/`              # Paso 4
-  - `05_module_analysis.ipynb/`                # Paso 5
-- `requirements.txt/`
-- `README.md/`
+gnngo/
+│
+├── input/                     
+│   ├── Edge.csv
+│   ├── GO.csv
+│   ├── metadata_GO.csv
+│   └── metadata_proteins.csv
+│
+├── output/                    
+│
+├── 01_data_preprocessing.ipynb   # Paso 1
+├── 02_tuning.ipynb               # Paso 2
+├── 03_model_training.ipynb       # Paso 3
+├── 04_clustering_search.ipynb    # Paso 4
+├── 05_module_analysis.ipynb      # Paso 5
+│
+└── README.md
 
 ---
 ## 2. Requisitos e instalación
