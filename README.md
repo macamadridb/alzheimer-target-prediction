@@ -177,6 +177,17 @@ Run the remaining cells of the notebook (`01_data_preprocessing.ipynb`) in order
 The **`02_tuning.ipynb`** file corresponds to the hyperparameter optimization phase.  
 Its purpose is to find the combination of hyperparameters that maximizes the model’s performance.
 
+:warning: **Note on device selection (CPU/GPU):**
+This notebook automatically detects if a GPU is available and assigns the device as:
+```python
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+```
+However, on systems with limited GPU memory (e.g., lab workstations or shared servers), this may cause out of memory errors during training.
+In such cases, it is recommended to force CPU usage by replacing that line with:
+```python
+device = torch.device('cpu')
+```
+
 ---
 
 #### A. Component Loading
@@ -260,6 +271,9 @@ The notebook uses:
 - **Hyperparameters:** The HP values are assigned to variables such as `HIDDEN_CHANNELS`, `LEARNING_RATE`, `FINAL_EPOCHS`, etc., directly from the Optuna results.
 
 #### C. Final Results
+At this stage, the graph is re-divided using **`RandomLinkSplit`**, a method that separates edges into **Training**, **Validation**, and **Test** subsets.  
+This division is an **integral part of the evaluation process**, as all performance metrics — *AUC, Accuracy, Precision, Recall, and F1-score* — are computed over these subsets.  
+This ensures a consistent and reproducible evaluation of the model’s predictive performance on unseen data.
 
 At the end of execution, this notebook produces **two key artifacts** in the `output/` directory:
 
