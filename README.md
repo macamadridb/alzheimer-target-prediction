@@ -34,8 +34,6 @@ This template allows you to run the entire pipeline on any PPI network, starting
 - `05_module_analysis.ipynb` — Step 5  
 
 - `requirements.txt`  
-- `README.md`
-
 
 
 ---
@@ -51,6 +49,7 @@ pip install -r requirements.txt
 ```
 :bulb: Note: If you have a GPU, you can speed up model training by installing the CUDA-compatible version of PyTorch.
 Follow the official installation guide here: https://pytorch.org/get-started/locally
+
 ---
 
 ## 3. Input Files (folder `input/`)
